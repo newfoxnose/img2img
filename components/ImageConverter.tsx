@@ -275,10 +275,13 @@ export default function ImageConverter() {
                           const lastDot = fileName.lastIndexOf('.')
                           const baseName = lastDot > 0 ? fileName.substring(0, lastDot) : fileName
                           const newFileName = `${baseName}.${format}`
+                          // 确定新的状态：如果是 completed 或 pending，重置为 pending；否则保持原状态
+                          const newStatus: 'pending' | 'converting' | 'completed' | 'error' = 
+                            f.status === 'completed' || f.status === 'pending' ? 'pending' : f.status
                           return {
                             ...f,
                             name: newFileName,
-                            status: f.status === 'completed' || f.status === 'pending' ? 'pending' : f.status,
+                            status: newStatus,
                             convertedBlob: null,
                             convertedUrl: null,
                           }
