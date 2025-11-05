@@ -14,8 +14,14 @@ const nextConfig = {
         fs: false,
         path: false,
         crypto: false,
+        encoding: false,
       }
     }
+    // 忽略 node-fetch 的 encoding 依赖警告
+    config.ignoreWarnings = [
+      { module: /node_modules\/node-fetch/ },
+      { message: /Can't resolve 'encoding'/ },
+    ]
     return config
   },
 }

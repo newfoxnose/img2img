@@ -90,7 +90,7 @@ export async function loadFaceDetectionModels(): Promise<void> {
  */
 export async function detectFace(
   image: HTMLImageElement | string
-): Promise<faceapi.FaceDetection[] | null> {
+): Promise<faceapi.WithFaceLandmarks<faceapi.WithFaceDetection<{}>>[] | null> {
   try {
     // 确保模型已加载
     await loadFaceDetectionModels()
@@ -124,14 +124,14 @@ export async function detectFace(
 
 /**
  * 根据人脸位置计算证件照裁剪区域
- * @param faceDetection 人脸检测结果
+ * @param faceDetection 人脸检测结果（包含检测信息和关键点）
  * @param imageWidth 图片宽度
  * @param imageHeight 图片高度
  * @param targetAspectRatio 目标宽高比（宽/高）
  * @returns 裁剪参数 { x, y, width, height }
  */
 export function calculateCropFromFace(
-  faceDetection: faceapi.FaceDetection,
+  faceDetection: faceapi.WithFaceLandmarks<faceapi.WithFaceDetection<{}>>,
   imageWidth: number,
   imageHeight: number,
   targetAspectRatio: number
