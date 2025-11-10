@@ -72,7 +72,7 @@ export default function Home() {
                 证件照处理
               </h3>
               <p className="text-gray-600 dark:text-gray-300">
-                支持 1寸、大2寸等标准尺寸，可裁剪头像范围，调整亮度和对比度
+                支持 1寸、大2寸等标准尺寸，可裁剪头像范围，调整亮度和对比度，AI 智能抠图换背景（基于 IMG.LY 背景去除引擎）
               </p>
             </div>
             <div className="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-md hover:shadow-lg transition-shadow">
@@ -123,7 +123,10 @@ export default function Home() {
                 <li>选择证件照尺寸（1寸 宽295×高413px 或 大2寸 宽413×高626px）</li>
                 <li>点击上传区域或拖拽照片文件到指定区域，支持批量上传</li>
                 <li>点击"编辑"按钮打开编辑器，可以调整裁剪区域（拖动移动、拖动四角缩放）</li>
-                <li>使用滑块调整亮度和对比度，实时预览效果</li>
+                <li>使用滑块调整亮度、对比度和饱和度，实时预览效果</li>
+                <li>
+                  选择背景颜色（白色、红色、宝蓝色、天蓝色），系统会自动使用 IMG.LY AI 引擎抠图并替换背景
+                </li>
                 <li>点击"批量处理"处理所有照片，或单独处理每个文件</li>
                 <li>处理完成后可以单独下载或批量打包下载</li>
                 <li>所有处理操作在浏览器本地完成，保护您的隐私</li>

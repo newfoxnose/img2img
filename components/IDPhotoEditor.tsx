@@ -1,8 +1,9 @@
 'use client'
 
 import { useState, useRef, useEffect, useCallback } from 'react'
-import { CropParams, AdjustParams, IDPhotoSize, ID_PHOTO_SIZES } from '@/utils/idPhotoProcessor'
+import { CropParams, AdjustParams, IDPhotoSize, ID_PHOTO_SIZES, BackgroundColor } from '@/utils/idPhotoProcessor'
 import { autoDetectAndCrop } from '@/utils/faceDetection'
+import { BACKGROUND_COLORS } from '@/utils/backgroundReplacer'
 
 // 编辑器属性接口
 interface IDPhotoEditorProps {
@@ -11,6 +12,7 @@ interface IDPhotoEditorProps {
   size: IDPhotoSize // 证件照尺寸
   onCropChange?: (crop: CropParams) => void // 裁剪参数变化回调
   onAdjustChange?: (adjust: AdjustParams) => void // 调整参数变化回调
+  onBackgroundChange?: (backgroundColor: BackgroundColor | null) => void // 背景颜色变化回调
   onExport?: (blob: Blob) => void // 导出回调
 }
 
@@ -20,6 +22,7 @@ export default function IDPhotoEditor({
   size,
   onCropChange,
   onAdjustChange,
+  onBackgroundChange,
   onExport,
 }: IDPhotoEditorProps) {
   // 图片容器引用
@@ -58,6 +61,9 @@ export default function IDPhotoEditor({
 
   // 自动检测状态
   const [isDetecting, setIsDetecting] = useState(false)
+
+  // 背景颜色状态
+  const [backgroundColor, setBackgroundColor] = useState<BackgroundColor | null>(null)
 
   // 使用 ref 保存回调函数，避免在依赖项中引用
   const onCropChangeRef = useRef(onCropChange)
@@ -389,6 +395,15 @@ export default function IDPhotoEditor({
     [adjust, onAdjustChange]
   )
 
+  // 处理背景颜色变化
+  const handleBackgroundChange = useCallback(
+    (color: BackgroundColor | null) => {
+      setBackgroundColor(color)
+      onBackgroundChange?.(color)
+    },
+    [onBackgroundChange]
+  )
+
   // 自动检测人脸并设置裁剪区域
   const handleAutoDetect = useCallback(async () => {
     if (!imageInfo) return
@@ -626,6 +641,56 @@ export default function IDPhotoEditor({
             className="w-full"
           />
         </div>
+
+        {/* 背景颜色选择器 */}
+        <div>
+          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+            背景颜色（智能抠图换背景）
+          </label>
+          <div className="flex flex-wrap gap-2">
+            <button
+              onClick={() => handleBackgroundChange(null)}
+              className={`px-4 py-2 rounded-lg transition-colors font-medium text-sm ${
+                backgroundColor === null
+                  ? 'bg-blue-600 text-white'
+                  : 'bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-300 dark:hover:bg-gray-600'
+              }`}
+            >
+              原图背景
+            </button>
+            {(Object.keys(BACKGROUND_COLORS) as BackgroundColor[]).map((color) => {
+              const config = BACKGROUND_COLORS[color]
+              return (
+                <button
+                  key={color}
+                  onClick={() => handleBackgroundChange(color)}
+                  className={`px-4 py-2 rounded-lg transition-colors font-medium text-sm border-2 ${
+                    backgroundColor === color
+                      ? 'border-blue-600 bg-blue-50 dark:bg-blue-900/20'
+                      : 'border-transparent bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600'
+                  }`}
+                  style={{
+                    backgroundColor: backgroundColor === color ? config.hex : undefined,
+                    color: backgroundColor === color ? '#000' : undefined,
+                  }}
+                >
+                  <span className="flex items-center gap-2">
+                    <span
+                      className="inline-block w-4 h-4 rounded-full border border-gray-400"
+                      style={{ backgroundColor: config.hex }}
+                    />
+                    {config.name}
+                  </span>
+                </button>
+              )
+            })}
+          </div>
+          {backgroundColor && (
+            <p className="mt-2 text-xs text-gray-500 dark:text-gray-400">
+              已选择 {BACKGROUND_COLORS[backgroundColor].name} 背景，处理时将自动调用 IMG.LY AI 背景去除引擎
+            </p>
+          )}
+        </div>
       </div>
 
       {/* 操作提示 */}
@@ -633,6 +698,7 @@ export default function IDPhotoEditor({
         <p>• 点击"自动检测人脸"按钮，系统会自动定位人脸并设置裁剪区域</p>
         <p>• 拖动裁剪框来移动位置，拖动四角来调整大小（保持证件照比例）</p>
         <p>• 使用滑块调整图片参数：亮度、对比度、饱和度</p>
+        <p>• 选择背景颜色后，系统会使用 IMG.LY 背景去除引擎自动替换背景（首次使用需加载模型文件，请耐心等待）</p>
       </div>
     </div>
   )

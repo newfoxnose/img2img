@@ -10,6 +10,7 @@ import {
   ID_PHOTO_SIZES,
   type CropParams,
   type AdjustParams,
+  type BackgroundColor,
 } from '@/utils/idPhotoProcessor'
 
 // 支持的输入图片类型
@@ -39,6 +40,7 @@ interface FileInfo {
   previewUrl: string
   cropParams: CropParams
   adjustParams: AdjustParams
+  backgroundColor: BackgroundColor | null
   processedBlob: Blob | null
   processedUrl: string | null
   status: 'pending' | 'processing' | 'completed' | 'error'
@@ -127,6 +129,7 @@ export default function IDPhotoConverter() {
             contrast: 0,
             saturation: 0,
           },
+          backgroundColor: null,
           processedBlob: null,
           processedUrl: null,
           status: 'pending',
@@ -178,7 +181,8 @@ export default function IDPhotoConverter() {
           fileInfo.file,
           selectedSize,
           fileInfo.cropParams,
-          fileInfo.adjustParams
+          fileInfo.adjustParams,
+          fileInfo.backgroundColor || undefined
         )
 
         const processedUrl = URL.createObjectURL(blob)
@@ -249,6 +253,24 @@ export default function IDPhotoConverter() {
         updated[index] = {
           ...updated[index],
           adjustParams: adjust,
+          processedBlob: null,
+          processedUrl: null,
+          status: 'pending',
+        }
+        return updated
+      })
+    },
+    []
+  )
+
+  // 更新背景颜色
+  const handleBackgroundChange = useCallback(
+    (index: number, backgroundColor: BackgroundColor | null) => {
+      setFiles((prev) => {
+        const updated = [...prev]
+        updated[index] = {
+          ...updated[index],
+          backgroundColor,
           processedBlob: null,
           processedUrl: null,
           status: 'pending',
@@ -530,6 +552,7 @@ export default function IDPhotoConverter() {
                       size={selectedSize}
                       onCropChange={(crop) => handleCropChange(index, crop)}
                       onAdjustChange={(adjust) => handleAdjustChange(index, adjust)}
+                      onBackgroundChange={(backgroundColor) => handleBackgroundChange(index, backgroundColor)}
                     />
                   </div>
                 )}

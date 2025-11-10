@@ -45,6 +45,9 @@ export interface AdjustParams {
   saturation: number // 饱和度 (-100 到 100)
 }
 
+// 背景颜色类型（从 backgroundReplacer 导入）
+export type BackgroundColor = 'white' | 'red' | 'royal-blue' | 'sky-blue'
+
 /**
  * 设置图片的 DPI 为 300
  * @param imageFile 原始图片文件
@@ -168,13 +171,15 @@ function applyImageAdjustments(
  * @param size 证件照尺寸
  * @param cropParams 裁剪参数
  * @param adjustParams 调整参数（亮度和对比度）
+ * @param backgroundColor 背景颜色（可选，如果提供则进行智能抠图换背景）
  * @returns Promise<Blob> 处理后的证件照 Blob
  */
 export async function processIDPhoto(
   imageFile: File,
   size: IDPhotoSize,
   cropParams: CropParams,
-  adjustParams: AdjustParams
+  adjustParams: AdjustParams,
+  backgroundColor?: BackgroundColor
 ): Promise<Blob> {
   return new Promise((resolve, reject) => {
     const reader = new FileReader()
@@ -188,7 +193,7 @@ export async function processIDPhoto(
 
       const img = new Image()
 
-      img.onload = () => {
+      img.onload = async () => {
         try {
           // 获取目标尺寸
           const targetSize = ID_PHOTO_SIZES[size]
@@ -219,8 +224,17 @@ export async function processIDPhoto(
             return
           }
 
-          // 填充白色背景（证件照通常使用白色背景）
-          targetCtx.fillStyle = '#FFFFFF'
+          // 填充背景颜色
+          // 如果指定了背景颜色，会在后面进行智能抠图处理
+          // 这里先填充默认白色背景
+          if (backgroundColor) {
+            // 导入背景颜色配置
+            const { BACKGROUND_COLORS } = await import('./backgroundReplacer')
+            const bgColor = BACKGROUND_COLORS[backgroundColor]
+            targetCtx.fillStyle = bgColor.hex
+          } else {
+            targetCtx.fillStyle = '#FFFFFF'
+          }
           targetCtx.fillRect(0, 0, targetCanvas.width, targetCanvas.height)
 
           // 计算裁剪区域（确保不超出图片范围）
@@ -235,18 +249,103 @@ export async function processIDPhoto(
             img.height - cropY
           )
 
-          // 将裁剪后的图片绘制到目标 Canvas，并缩放到目标尺寸
-          targetCtx.drawImage(
-            sourceCanvas,
-            cropX,
-            cropY,
-            cropWidth,
-            cropHeight,
-            0,
-            0,
-            targetCanvas.width,
-            targetCanvas.height
-          )
+          // 如果指定了背景颜色，先进行智能抠图处理
+          if (backgroundColor) {
+            try {
+              // 导入背景替换函数
+              const { replaceBackground } = await import('./backgroundReplacer')
+              
+              // 创建临时 Canvas 用于背景替换
+              const tempCanvas = document.createElement('canvas')
+              tempCanvas.width = cropWidth
+              tempCanvas.height = cropHeight
+              const tempCtx = tempCanvas.getContext('2d')
+              if (!tempCtx) {
+                throw new Error('无法创建临时 Canvas 上下文')
+              }
+              
+              // 绘制裁剪区域到临时 Canvas
+              tempCtx.drawImage(
+                sourceCanvas,
+                cropX,
+                cropY,
+                cropWidth,
+                cropHeight,
+                0,
+                0,
+                cropWidth,
+                cropHeight
+              )
+              
+              // 将临时 Canvas 转换为 Blob
+              const tempBlob = await new Promise<Blob>((resolve, reject) => {
+                tempCanvas.toBlob(
+                  (blob) => {
+                    if (blob) {
+                      resolve(blob)
+                    } else {
+                      reject(new Error('转换失败'))
+                    }
+                  },
+                  'image/jpeg',
+                  0.95
+                )
+              })
+              
+              // 创建临时 File 对象
+              const tempFile = new File([tempBlob], 'temp.jpg', { type: 'image/jpeg' })
+              
+              // 执行背景替换
+              const replacedBlob = await replaceBackground(tempFile, backgroundColor)
+              
+              // 将替换背景后的图片绘制到目标 Canvas
+              const replacedImg = new Image()
+              await new Promise((resolve, reject) => {
+                replacedImg.onload = () => {
+                  targetCtx.drawImage(
+                    replacedImg,
+                    0,
+                    0,
+                    targetCanvas.width,
+                    targetCanvas.height
+                  )
+                  resolve(null)
+                }
+                replacedImg.onerror = () => reject(new Error('背景替换后的图片加载失败'))
+                replacedImg.src = URL.createObjectURL(replacedBlob)
+              })
+              
+              // 清理 URL
+              URL.revokeObjectURL(replacedImg.src)
+            } catch (bgError) {
+              console.warn('背景替换失败，使用默认处理:', bgError)
+              // 如果背景替换失败，使用默认方式绘制
+              targetCtx.drawImage(
+                sourceCanvas,
+                cropX,
+                cropY,
+                cropWidth,
+                cropHeight,
+                0,
+                0,
+                targetCanvas.width,
+                targetCanvas.height
+              )
+            }
+          } else {
+            // 将裁剪后的图片绘制到目标 Canvas，并缩放到目标尺寸
+            targetCtx.drawImage(
+              sourceCanvas,
+              cropX,
+              cropY,
+              cropWidth,
+              cropHeight,
+              0,
+              0,
+              targetCanvas.width,
+              targetCanvas.height
+            )
+          }
 
           // 转换为 DataURL (使用 JPG 格式，质量 0.95)
           const dataURL = targetCanvas.toDataURL('image/jpeg', 0.95)
