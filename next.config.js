@@ -35,6 +35,18 @@ const nextConfig = {
         worker_threads: false,
       }
 
+      // 配置 resolve.conditionNames 确保优先使用浏览器版本，排除 node 条件
+      config.resolve.conditionNames = ['browser', 'import', 'require', 'default']
+      
+      // 配置 resolve.aliasFields 确保优先使用 browser 字段
+      config.resolve.aliasFields = ['browser']
+      
+      // 配置 resolve.extensionAlias 确保使用正确的文件扩展名
+      config.resolve.extensionAlias = {
+        '.js': ['.browser.js', '.js'],
+        '.mjs': ['.browser.mjs', '.mjs'],
+      }
+
       // 强制使用浏览器版本的 onnxruntime-web，排除 Node.js 版本
       config.resolve.alias = {
         ...config.resolve.alias,
@@ -46,12 +58,33 @@ const nextConfig = {
         ),
       }
 
-      // 使用 NormalModuleReplacementPlugin 替换 Node.js 版本的导入
+      // 使用 webpack 插件排除 Node.js 版本
       const webpack = require('webpack')
+      
+      // 忽略 Node.js 版本的文件
       config.plugins.push(
+        new webpack.IgnorePlugin({
+          resourceRegExp: /ort\.node\.min\.(mjs|js)$/,
+          contextRegExp: /onnxruntime-web/,
+        }),
+        // 替换 Node.js 版本的导入为浏览器版本
         new webpack.NormalModuleReplacementPlugin(
           /onnxruntime-web\/dist\/ort\.node\.min\.(mjs|js)$/,
           path.resolve(__dirname, 'node_modules/onnxruntime-web/dist/ort.min.js')
+        ),
+        // 处理 onnxruntime-web 的根导入，强制使用浏览器版本
+        new webpack.NormalModuleReplacementPlugin(
+          /^onnxruntime-web$/,
+          (resource) => {
+            // 检查是否在客户端构建中
+            if (!isServer) {
+              // 强制使用浏览器版本
+              resource.request = path.resolve(
+                __dirname,
+                'node_modules/onnxruntime-web/dist/ort.min.js'
+              )
+            }
+          }
         )
       )
     } else {
