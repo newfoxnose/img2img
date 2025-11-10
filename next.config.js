@@ -35,11 +35,25 @@ const nextConfig = {
         worker_threads: false,
       }
 
-      // 忽略仅在 Node.js 环境下可用的 onnxruntime-node，避免打包报错
+      // 强制使用浏览器版本的 onnxruntime-web，排除 Node.js 版本
       config.resolve.alias = {
         ...config.resolve.alias,
         'onnxruntime-node': false,
+        // 强制使用浏览器版本的 onnxruntime-web
+        'onnxruntime-web': path.resolve(
+          __dirname,
+          'node_modules/onnxruntime-web/dist/ort.min.js'
+        ),
       }
+
+      // 使用 NormalModuleReplacementPlugin 替换 Node.js 版本的导入
+      const webpack = require('webpack')
+      config.plugins.push(
+        new webpack.NormalModuleReplacementPlugin(
+          /onnxruntime-web\/dist\/ort\.node\.min\.(mjs|js)$/,
+          path.resolve(__dirname, 'node_modules/onnxruntime-web/dist/ort.min.js')
+        )
+      )
     } else {
       // 服务端同样忽略 onnxruntime-node，保持构建一致性
       config.resolve.alias = {
@@ -51,6 +65,8 @@ const nextConfig = {
     config.ignoreWarnings = [
       { module: /node_modules\/node-fetch/ },
       { message: /Can't resolve 'encoding'/ },
+      // 忽略 onnxruntime-web 的 Node.js 版本相关警告
+      { module: /onnxruntime-web.*ort\.node\.min/ },
     ]
     return config
   },
