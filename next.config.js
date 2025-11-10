@@ -39,14 +39,12 @@ const nextConfig = {
       config.resolve.alias = {
         ...config.resolve.alias,
         'onnxruntime-node': false,
-        'onnxruntime-web': path.resolve(__dirname, 'node_modules/onnxruntime-web/dist/ort.min.mjs'),
       }
     } else {
       // 服务端同样忽略 onnxruntime-node，保持构建一致性
       config.resolve.alias = {
         ...config.resolve.alias,
         'onnxruntime-node': false,
-        'onnxruntime-web': path.resolve(__dirname, 'node_modules/onnxruntime-web/dist/ort.min.mjs'),
       }
     }
     // 忽略 node-fetch 的 encoding 依赖警告
