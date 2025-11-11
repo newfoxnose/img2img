@@ -19,6 +19,11 @@ const nextConfig = {
       },
     ]
   },
+
+  // Tell Next.js to treat .mjs files as ES modules
+  transpilePackages: ['onnxruntime-node', 'onnxruntime-web'],
+
+  
   // 配置 webpack 以支持浏览器端推理相关依赖
   webpack: (config, { isServer }) => {
     if (!isServer) {
@@ -38,6 +43,8 @@ const nextConfig = {
         ...config.resolve.alias,
         'onnxruntime-node': false,
       }
+
+      config.externals = [...(config.externals || []), 'onnxruntime-node'];
     } else {
       // 服务端同样忽略 onnxruntime-node，保持构建一致性
       config.resolve.alias = {
@@ -50,6 +57,15 @@ const nextConfig = {
       { module: /node_modules\/node-fetch/ },
       { message: /Can't resolve 'encoding'/ },
     ]
+
+    // Prevent Terser from misfiring on this file
+    config.module.rules.push({
+      test: /ort\.node\.min\.mjs$/,
+      type: 'javascript/auto',
+      resolve: {
+        fullySpecified: false,
+      },
+    });
     return config
   },
 }
