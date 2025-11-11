@@ -20,10 +20,6 @@ const nextConfig = {
     ]
   },
 
-  // Tell Next.js to treat .mjs files as ES modules
-  transpilePackages: ['onnxruntime-node', 'onnxruntime-web'],
-
-  
   // 配置 webpack 以支持浏览器端推理相关依赖
   webpack: (config, { isServer }) => {
     if (!isServer) {

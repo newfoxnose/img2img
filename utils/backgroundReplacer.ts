@@ -1,9 +1,60 @@
 /**
  * 背景替换工具函数（基于 @imgly/background-removal）
+ * 使用 CDN 方式加载，避免模块打包问题
  */
 
-import { removeBackground } from '@imgly/background-removal'
-import { env as ortEnv } from 'onnxruntime-web'
+// 全局变量，用于缓存已加载的模块
+let backgroundRemovalModule: any = null
+let isLoading = false
+let loadPromise: Promise<any> | null = null
+
+/**
+ * 从 CDN 加载 @imgly/background-removal
+ * 使用动态 import() 加载 ES 模块版本
+ */
+async function loadBackgroundRemoval(): Promise<any> {
+  if (backgroundRemovalModule) {
+    return backgroundRemovalModule
+  }
+
+  if (isLoading && loadPromise) {
+    return loadPromise
+  }
+
+  isLoading = true
+  loadPromise = (async () => {
+    try {
+      // 使用 jsDelivr CDN 加载 ES 模块版本
+      // jsDelivr 支持直接加载 npm 包的 ES 模块
+      // 使用 webpackIgnore 避免打包阶段尝试处理远程模块
+      // @ts-ignore - 动态 import() URL 在运行时解析
+      const module = await import(
+        /* webpackIgnore: true */ ('https://cdn.jsdelivr.net/npm/@imgly/background-removal@1.7.0/+esm' as any)
+      )
+      backgroundRemovalModule = module
+      isLoading = false
+      return module
+    } catch (jsdelivrError) {
+      try {
+        // 如果 jsDelivr 失败，尝试使用 unpkg 的 ES 模块版本
+        // @ts-ignore - 动态 import() URL 在运行时解析
+        const module = await import(
+          /* webpackIgnore: true */ ('https://unpkg.com/@imgly/background-removal@1.7.0/dist/index.esm.js' as any)
+        )
+        backgroundRemovalModule = module
+        isLoading = false
+        return module
+      } catch (unpkgError) {
+        isLoading = false
+        throw new Error(
+          `无法从 CDN 加载背景移除库。jsDelivr: ${jsdelivrError instanceof Error ? jsdelivrError.message : '未知错误'}, unpkg: ${unpkgError instanceof Error ? unpkgError.message : '未知错误'}`
+        )
+      }
+    }
+  })()
+
+  return loadPromise
+}
 
 // 背景颜色配置
 export type BackgroundColor = 'white' | 'red' | 'royal-blue' | 'sky-blue'
@@ -68,10 +119,19 @@ export async function replaceBackground(
   backgroundColor: BackgroundColor
 ): Promise<Blob> {
   try {
-    // 配置 ONNX Runtime Web，避免多线程警告
-    if (typeof ortEnv !== 'undefined' && 'wasm' in ortEnv && ortEnv.wasm) {
-      ortEnv.wasm.numThreads = 1
-      ortEnv.wasm.proxy = false
+    // 确保只在客户端环境中运行
+    if (typeof window === 'undefined') {
+      throw new Error('背景替换功能仅在客户端可用')
+    }
+
+    // 从 CDN 加载背景移除库
+    const bgRemovalModule = await loadBackgroundRemoval()
+    
+    // ES 模块版本直接导出 removeBackground 函数
+    const removeBackground = bgRemovalModule.removeBackground || bgRemovalModule.default?.removeBackground || bgRemovalModule.default
+
+    if (!removeBackground || typeof removeBackground !== 'function') {
+      throw new Error('背景移除函数未正确加载')
     }
 
     // 使用 @imgly/background-removal 抠图，得到透明背景 PNG

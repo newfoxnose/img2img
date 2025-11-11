@@ -10,8 +10,6 @@
     "download-models": "node scripts/download-models.js"
   },
   "dependencies": {
-    "@imgly/background-removal": "^1.7.0",
-    "onnxruntime-web": "^1.21.0",
     "face-api.js": "^0.22.2",
     "jszip": "^3.10.1",
     "next": "^14.0.0",
