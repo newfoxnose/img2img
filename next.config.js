@@ -20,10 +20,9 @@ const nextConfig = {
     ]
   },
 
-  // Tell Next.js to treat .mjs files as ES modules
-  transpilePackages: ['onnxruntime-node', 'onnxruntime-web'],
+  // 配置 Next.js 转译 onnxruntime-web（包含 .mjs 文件）
+  transpilePackages: ['onnxruntime-web'],
 
-  
   // 配置 webpack 以支持浏览器端推理相关依赖
   webpack: (config, { isServer }) => {
     if (!isServer) {
@@ -36,20 +35,6 @@ const nextConfig = {
         encoding: false,
         child_process: false,
         worker_threads: false,
-      }
-
-      // 忽略仅在 Node.js 环境下可用的 onnxruntime-node，避免打包报错
-      config.resolve.alias = {
-        ...config.resolve.alias,
-        'onnxruntime-node': false,
-      }
-
-      config.externals = [...(config.externals || []), 'onnxruntime-node'];
-    } else {
-      // 服务端同样忽略 onnxruntime-node，保持构建一致性
-      config.resolve.alias = {
-        ...config.resolve.alias,
-        'onnxruntime-node': false,
       }
     }
     // 忽略 node-fetch 的 encoding 依赖警告
