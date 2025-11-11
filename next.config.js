@@ -45,14 +45,21 @@ const nextConfig = {
 
     // Prevent Terser from misfiring on this file
     config.module.rules.push({
-      test: /ort\.node\.min\.mjs$/,
+      test: /ort\.node\.min/,
       type: 'javascript/auto',
       resolve: {
         fullySpecified: false,
       },
+    },{
+      test: /\.mjs$/,
+      include: /node_modules/,
+      type: 'javascript/auto',
     });
     return config
   },
+  // If you're using static exports
+  output: 'export',
+  trailingSlash: true,
 }
 
 module.exports = nextConfig
