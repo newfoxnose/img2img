@@ -76,9 +76,7 @@ export async function replaceBackground(
 
     // 使用 @imgly/background-removal 抠图，得到透明背景 PNG
     const transparentBlob = await removeBackground(imageFile, {
-      output: {
-        format: 'image/png',
-      },
+      format: 'image/png',
     })
 
     // 将抠图结果加载成图片
