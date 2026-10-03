@@ -2,7 +2,7 @@
 
 import { useState, useRef, useCallback } from 'react'
 import JSZip from 'jszip'
-import { splitImageToPortraits, type SplitInfo } from '@/utils/imageSplitter'
+import { splitImageToPortraits, type SplitInfo, type RotationOption } from '@/utils/imageSplitter'
 import { type OutputFormat } from '@/utils/imageConverter'
 
 // 支持的输入图片类型
@@ -53,11 +53,16 @@ export default function ImageSplitter() {
   const [isDragging, setIsDragging] = useState(false)
   const [isProcessing, setIsProcessing] = useState(false)
   const [outputFormat, setOutputFormat] = useState<OutputFormat>('jpg')
+  const [rotation, setRotation] = useState<RotationOption>(0)
   const fileInputRef = useRef<HTMLInputElement>(null)
 
-  // 处理文件分割
-  const processFiles = useCallback(
-    async (filesToProcess: FileInfo[]) => {
+  // 处理文件分割（显式指定输出格式与旋转方向，避免 setTimeout 闭包捕获旧状态）
+  const processFilesWith = useCallback(
+    async (
+      filesToProcess: FileInfo[],
+      fmt: OutputFormat,
+      rot: RotationOption
+    ) => {
       setIsProcessing(true)
 
       const updatedFiles = await Promise.all(
@@ -74,14 +79,15 @@ export default function ImageSplitter() {
           try {
             const { blobs, info } = await splitImageToPortraits(
               fileInfo.file,
-              outputFormat
+              fmt,
+              rot
             )
 
             const baseName = fileInfo.file.name.replace(/\.[^.]+$/, '')
             const slices: SliceResult[] = blobs.map((blob, i) => ({
               blob,
               url: URL.createObjectURL(blob),
-              name: `${baseName}_${i + 1}.${outputFormat}`,
+              name: `${baseName}_${i + 1}.${fmt}`,
               index: i,
             }))
 
@@ -108,7 +114,14 @@ export default function ImageSplitter() {
       })
       setIsProcessing(false)
     },
-    [outputFormat]
+    []
+  )
+
+  // 使用当前状态处理文件
+  const processFiles = useCallback(
+    (filesToProcess: FileInfo[]) =>
+      processFilesWith(filesToProcess, outputFormat, rotation),
+    [outputFormat, rotation, processFilesWith]
   )
 
   // 处理文件选择
@@ -262,14 +275,48 @@ export default function ImageSplitter() {
         setTimeout(() => {
           const toProcess = updated.filter((f) => f.status === 'pending')
           if (toProcess.length > 0) {
-            processFiles(toProcess)
+            processFilesWith(toProcess, format, rotation)
           }
         }, 100)
 
         return updated
       })
     },
-    [files, outputFormat, processFiles]
+    [files, outputFormat, rotation, processFilesWith]
+  )
+
+  // 切换旋转方向：重新分割已有文件
+  const handleRotationChange = useCallback(
+    async (newRotation: RotationOption) => {
+      if (newRotation === rotation) return
+      setRotation(newRotation)
+
+      if (files.length === 0) return
+
+      // 清理旧的 slice URL
+      files.forEach((f) => f.slices.forEach((s) => URL.revokeObjectURL(s.url)))
+
+      setFiles((prev) => {
+        const updated = prev.map((f) => ({
+          ...f,
+          slices: [],
+          info: null,
+          status: (f.status === 'completed' || f.status === 'pending'
+            ? 'pending'
+            : f.status) as FileInfo['status'],
+        }))
+
+        setTimeout(() => {
+          const toProcess = updated.filter((f) => f.status === 'pending')
+          if (toProcess.length > 0) {
+            processFilesWith(toProcess, outputFormat, newRotation)
+          }
+        }, 100)
+
+        return updated
+      })
+    },
+    [files, rotation, outputFormat, processFilesWith]
   )
 
   const totalSlices = files.reduce(
@@ -329,6 +376,34 @@ export default function ImageSplitter() {
             </div>
           </div>
 
+          {/* 原图旋转方向选择器 */}
+          <div className="flex flex-col items-center gap-3">
+            <label className="text-sm font-medium text-gray-700 dark:text-gray-300">
+              原图旋转：
+            </label>
+            <div className="flex gap-2">
+              {(
+                [
+                  { value: 0 as RotationOption, label: '不旋转' },
+                  { value: 270 as RotationOption, label: '左转 90°' },
+                  { value: 90 as RotationOption, label: '右转 90°' },
+                ]
+              ).map((opt) => (
+                <button
+                  key={opt.value}
+                  onClick={() => handleRotationChange(opt.value)}
+                  className={`px-4 py-2 rounded-lg transition-colors font-medium ${
+                    rotation === opt.value
+                      ? 'bg-blue-600 text-white'
+                      : 'bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-300 dark:hover:bg-gray-600'
+                  }`}
+                >
+                  {opt.label}
+                </button>
+              ))}
+            </div>
+          </div>
+
           <button
             onClick={() => fileInputRef.current?.click()}
             className="mt-4 px-6 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors font-medium"
@@ -379,9 +454,17 @@ export default function ImageSplitter() {
                     </p>
                     {fileInfo.info && (
                       <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                        原图 {fileInfo.info.originalWidth}×
-                        {fileInfo.info.originalHeight}px → 分割为{' '}
-                        {fileInfo.info.sliceCount} 张 3:4 竖版照片（
+                        {fileInfo.info.rotation !== 0 && (
+                          <>
+                            原图先{fileInfo.info.rotation === 270 ? '左转' : '右转'}90°（
+                            {fileInfo.info.originalWidth}×
+                            {fileInfo.info.originalHeight}px），
+                          </>
+                        )}
+                        {fileInfo.info.rotation === 0 && (
+                          <>原图 {fileInfo.info.originalWidth}×{fileInfo.info.originalHeight}px，</>
+                        )}
+                        分割为 {fileInfo.info.sliceCount} 张 3:4 竖版照片（
                         {Math.round(fileInfo.info.sliceWidth)}×
                         {Math.round(fileInfo.info.sliceHeight)}px），左右各裁切{' '}
                         {Math.round(fileInfo.info.cropLeft)}px

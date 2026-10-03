@@ -9,6 +9,14 @@ import { type OutputFormat, FORMAT_CONFIGS } from './imageConverter'
 // 目标竖版照片的宽高比（宽:高 = 3:4）
 const TARGET_RATIO = 3 / 4
 
+/**
+ * 旋转方向选项
+ * - 0: 不旋转
+ * - 90: 右转 90°（顺时针）
+ * - 270: 左转 90°（逆时针）
+ */
+export type RotationOption = 0 | 90 | 270
+
 // 分割结果信息
 export interface SplitInfo {
   /** 分割后每张竖版照片的宽度 */
@@ -29,6 +37,8 @@ export interface SplitInfo {
   originalWidth: number
   /** 原图高度 */
   originalHeight: number
+  /** 分割前应用的旋转角度（0 / 90 / 270） */
+  rotation: RotationOption
 }
 
 /**
@@ -63,6 +73,45 @@ function loadImage(file: File): Promise<HTMLImageElement> {
 }
 
 /**
+ * 将图片按指定角度旋转并绘制到新的 Canvas 上
+ * 仅支持 0° / 90°（顺时针右转）/ 270°（逆时针左转）
+ */
+function rotateImage(
+  img: HTMLImageElement,
+  rotation: RotationOption
+): HTMLCanvasElement {
+  const canvas = document.createElement('canvas')
+  const W = img.width
+  const H = img.height
+
+  if (rotation === 0) {
+    canvas.width = W
+    canvas.height = H
+    const ctx = canvas.getContext('2d')
+    if (ctx) ctx.drawImage(img, 0, 0)
+    return canvas
+  }
+
+  // 旋转 90° 后宽高互换
+  canvas.width = H
+  canvas.height = W
+  const ctx = canvas.getContext('2d')
+  if (!ctx) return canvas
+
+  if (rotation === 90) {
+    // 顺时针旋转 90°（右转）
+    ctx.translate(H, 0)
+    ctx.rotate(Math.PI / 2)
+  } else {
+    // 逆时针旋转 90°（左转）
+    ctx.translate(0, W)
+    ctx.rotate(-Math.PI / 2)
+  }
+  ctx.drawImage(img, 0, 0)
+  return canvas
+}
+
+/**
  * 将一张横版图片分割成多张 3:4 竖版图片
  *
  * 分割逻辑：
@@ -75,16 +124,20 @@ function loadImage(file: File): Promise<HTMLImageElement> {
  *
  * @param file 原始图片文件
  * @param outputFormat 输出格式（jpg、png、webp）
+ * @param rotation 原图旋转方向：0 不旋转 / 90 右转 / 270 左转（旋转后再分割）
  * @returns Promise<{ blobs: Blob[]; info: SplitInfo }>
  */
 export async function splitImageToPortraits(
   file: File,
-  outputFormat: OutputFormat = 'jpg'
+  outputFormat: OutputFormat = 'jpg',
+  rotation: RotationOption = 0
 ): Promise<{ blobs: Blob[]; info: SplitInfo }> {
   const img = await loadImage(file)
 
-  const W = img.width
-  const H = img.height
+  // 先按指定方向旋转原图，再基于旋转后的画布进行分割
+  const source = rotateImage(img, rotation)
+  const W = source.width
+  const H = source.height
 
   let sliceCount: number
   let sliceWidth: number
@@ -135,7 +188,7 @@ export async function splitImageToPortraits(
         }
 
         ctx.drawImage(
-          img,
+          source,
           cropLeft + i * sliceWidth, // 源图起始 x
           cropTop, // 源图起始 y
           sliceWidth, // 源图宽度
@@ -173,6 +226,7 @@ export async function splitImageToPortraits(
     cropBottom: H - cropTop - sliceHeight,
     originalWidth: W,
     originalHeight: H,
+    rotation,
   }
 
   return { blobs, info }

@@ -158,6 +158,9 @@ export default function Home() {
             <div className="bg-white dark:bg-gray-800 p-6 md:p-8 rounded-lg shadow-md">
               <ol className="list-decimal list-inside space-y-4 text-gray-700 dark:text-gray-300">
                 <li>选择输出格式（JPG、PNG 或 WebP）</li>
+                <li>
+                  可选：选择原图旋转方向（不旋转 / 左转 90° / 右转 90°），原图会先按所选方向旋转再进行分割
+                </li>
                 <li>点击上传区域或拖拽横版图片文件到指定区域，支持批量上传</li>
                 <li>
                   系统会自动将每张横版照片分割为多张宽高比为 <strong>3:4</strong> 的竖版照片
