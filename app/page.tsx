@@ -3,8 +3,9 @@
 import { useState } from 'react'
 import ImageConverter from '@/components/ImageConverter'
 import IDPhotoConverter from '@/components/IDPhotoConverter'
+import ImageSplitter from '@/components/ImageSplitter'
 
-type TabType = 'convert' | 'idphoto'
+type TabType = 'convert' | 'idphoto' | 'split'
 
 export default function Home() {
   const [activeTab, setActiveTab] = useState<TabType>('convert')
@@ -45,11 +46,27 @@ export default function Home() {
             >
               证件照处理
             </button>
+            <button
+              onClick={() => setActiveTab('split')}
+              className={`px-6 py-2 rounded-md transition-colors font-medium ${
+                activeTab === 'split'
+                  ? 'bg-blue-600 text-white'
+                  : 'text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700'
+              }`}
+            >
+              图片分割
+            </button>
           </div>
         </div>
 
         {/* 主要转换组件 */}
-        {activeTab === 'convert' ? <ImageConverter /> : <IDPhotoConverter />}
+        {activeTab === 'convert' ? (
+          <ImageConverter />
+        ) : activeTab === 'idphoto' ? (
+          <IDPhotoConverter />
+        ) : (
+          <ImageSplitter />
+        )}
 
         {/* 功能说明区域 */}
         <section className="mt-12 md:mt-16 max-w-4xl mx-auto">
@@ -113,7 +130,7 @@ export default function Home() {
               </ol>
             </div>
           </section>
-        ) : (
+        ) : activeTab === 'idphoto' ? (
           <section className="mt-12 md:mt-16 max-w-4xl mx-auto">
             <h2 className="text-2xl md:text-3xl font-semibold text-gray-900 dark:text-white mb-6 text-center">
               证件照处理使用说明
@@ -129,6 +146,27 @@ export default function Home() {
                 </li>
                 <li>点击"批量处理"处理所有照片，或单独处理每个文件</li>
                 <li>处理完成后可以单独下载或批量打包下载</li>
+                <li>所有处理操作在浏览器本地完成，保护您的隐私</li>
+              </ol>
+            </div>
+          </section>
+        ) : (
+          <section className="mt-12 md:mt-16 max-w-4xl mx-auto">
+            <h2 className="text-2xl md:text-3xl font-semibold text-gray-900 dark:text-white mb-6 text-center">
+              图片分割使用说明
+            </h2>
+            <div className="bg-white dark:bg-gray-800 p-6 md:p-8 rounded-lg shadow-md">
+              <ol className="list-decimal list-inside space-y-4 text-gray-700 dark:text-gray-300">
+                <li>选择输出格式（JPG、PNG 或 WebP）</li>
+                <li>点击上传区域或拖拽横版图片文件到指定区域，支持批量上传</li>
+                <li>
+                  系统会自动将每张横版照片分割为多张宽高比为 <strong>3:4</strong> 的竖版照片
+                </li>
+                <li>
+                  分割前会先对原图左右两侧进行裁切，使分割结果刚好为整数张（左右裁切量自动均分）
+                </li>
+                <li>上传后自动完成分割，可点击单张下载或"全部下载"保存某张原图的所有结果</li>
+                <li>也可点击"打包下载"将所有分割结果打包为 ZIP 文件一次性下载</li>
                 <li>所有处理操作在浏览器本地完成，保护您的隐私</li>
               </ol>
             </div>

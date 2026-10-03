@@ -13,7 +13,7 @@ export interface FormatConfig {
 }
 
 // 输出格式映射
-const FORMAT_CONFIGS: Record<OutputFormat, FormatConfig> = {
+export const FORMAT_CONFIGS: Record<OutputFormat, FormatConfig> = {
   jpg: {
     mimeType: 'image/jpeg',
     quality: 0.92, // JPG 质量
