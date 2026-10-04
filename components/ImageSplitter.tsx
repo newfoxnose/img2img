@@ -1,9 +1,10 @@
 'use client'
 
-import { useState, useRef, useCallback } from 'react'
+import { useState, useRef, useCallback, useEffect } from 'react'
 import JSZip from 'jszip'
-import { splitImageToPortraits, type SplitInfo, type RotationOption, type CropDirection } from '@/utils/imageSplitter'
+import { splitImageToPortraits, type SplitInfo, type CropRect } from '@/utils/imageSplitter'
 import { type OutputFormat } from '@/utils/imageConverter'
+import CropEditor from './CropEditor'
 
 // 支持的输入图片类型
 const ACCEPTED_TYPES = [
@@ -46,6 +47,8 @@ interface FileInfo {
   info: SplitInfo | null
   status: 'pending' | 'processing' | 'completed' | 'error'
   error?: string
+  rotation: number
+  cropRect: CropRect
 }
 
 export default function ImageSplitter() {
@@ -53,78 +56,103 @@ export default function ImageSplitter() {
   const [isDragging, setIsDragging] = useState(false)
   const [isProcessing, setIsProcessing] = useState(false)
   const [outputFormat, setOutputFormat] = useState<OutputFormat>('jpg')
-  const [rotation, setRotation] = useState<RotationOption>(0)
-  const [cropDirection, setCropDirection] = useState<CropDirection>('auto')
   const fileInputRef = useRef<HTMLInputElement>(null)
 
-  // 处理文件分割（显式指定输出格式、旋转方向与裁切方向，避免 setTimeout 闭包捕获旧状态）
-  const processFilesWith = useCallback(
-    async (
-      filesToProcess: FileInfo[],
-      fmt: OutputFormat,
-      rot: RotationOption,
-      cropDir: CropDirection
-    ) => {
-      setIsProcessing(true)
-
-      const updatedFiles = await Promise.all(
-        filesToProcess.map(async (fileInfo) => {
-          if (fileInfo.status === 'completed' && fileInfo.slices.length > 0) {
-            return fileInfo
-          }
-
-          const currentFile: FileInfo = { ...fileInfo, status: 'processing' }
-          setFiles((prev) =>
-            prev.map((f) => (f.file === fileInfo.file ? currentFile : f))
-          )
-
-          try {
-            const { blobs, info } = await splitImageToPortraits(
-              fileInfo.file,
-              fmt,
-              rot,
-              cropDir
-            )
-
-            const baseName = fileInfo.file.name.replace(/\.[^.]+$/, '')
-            const slices: SliceResult[] = blobs.map((blob, i) => ({
-              blob,
-              url: URL.createObjectURL(blob),
-              name: `${baseName}_${i + 1}.${fmt}`,
-              index: i,
-            }))
-
-            return {
-              ...fileInfo,
-              slices,
-              info,
-              status: 'completed' as const,
-            }
-          } catch (error) {
-            console.error('分割失败:', error)
-            return {
-              ...fileInfo,
-              status: 'error' as const,
-              error: error instanceof Error ? error.message : '分割失败',
-            }
-          }
-        })
+  // 处理单个文件分割（显式传入参数，避免闭包捕获旧状态）
+  const processOneFile = useCallback(
+    async (fileInfo: FileInfo, fmt: OutputFormat) => {
+      setFiles((prev) =>
+        prev.map((f) =>
+          f.file === fileInfo.file ? { ...f, status: 'processing' } : f
+        )
       )
 
-      setFiles((prev) => {
-        const fileMap = new Map(updatedFiles.map((f) => [f.file, f]))
-        return prev.map((f) => fileMap.get(f.file) || f)
-      })
-      setIsProcessing(false)
+      try {
+        const { blobs, info } = await splitImageToPortraits(
+          fileInfo.file,
+          fmt,
+          fileInfo.rotation,
+          fileInfo.cropRect
+        )
+
+        const baseName = fileInfo.file.name.replace(/\.[^.]+$/, '')
+        const slices: SliceResult[] = blobs.map((blob, i) => ({
+          blob,
+          url: URL.createObjectURL(blob),
+          name: `${baseName}_${i + 1}.${fmt}`,
+          index: i,
+        }))
+
+        setFiles((prev) =>
+          prev.map((f) =>
+            f.file === fileInfo.file
+              ? { ...f, slices, info, status: 'completed' }
+              : f
+          )
+        )
+      } catch (error) {
+        console.error('分割失败:', error)
+        setFiles((prev) =>
+          prev.map((f) =>
+            f.file === fileInfo.file
+              ? {
+                  ...f,
+                  status: 'error',
+                  error: error instanceof Error ? error.message : '分割失败',
+                }
+              : f
+          )
+        )
+      }
     },
     []
   )
 
-  // 使用当前状态处理文件
-  const processFiles = useCallback(
-    (filesToProcess: FileInfo[]) =>
-      processFilesWith(filesToProcess, outputFormat, rotation, cropDirection),
-    [outputFormat, rotation, cropDirection, processFilesWith]
+  // 防抖：旋转或裁切变化后重新分割
+  const debounceTimers = useRef<Map<string, ReturnType<typeof setTimeout>>>(new Map())
+
+  const scheduleProcess = useCallback(
+    (fileInfo: FileInfo) => {
+      const key = fileInfo.file.name + fileInfo.file.size
+      const existing = debounceTimers.current.get(key)
+      if (existing) clearTimeout(existing)
+
+      const timer = setTimeout(() => {
+        processOneFile(fileInfo, outputFormat)
+      }, 300)
+      debounceTimers.current.set(key, timer)
+    },
+    [outputFormat, processOneFile]
+  )
+
+  // 更新单文件旋转角度
+  const updateRotation = useCallback(
+    (fileInfo: FileInfo, rotation: number) => {
+      setFiles((prev) => {
+        const updated = prev.map((f) =>
+          f.file === fileInfo.file ? { ...f, rotation } : f
+        )
+        const target = updated.find((f) => f.file === fileInfo.file)
+        if (target) scheduleProcess(target)
+        return updated
+      })
+    },
+    [scheduleProcess]
+  )
+
+  // 更新单文件裁切区域
+  const updateCrop = useCallback(
+    (fileInfo: FileInfo, cropRect: CropRect) => {
+      setFiles((prev) => {
+        const updated = prev.map((f) =>
+          f.file === fileInfo.file ? { ...f, cropRect } : f
+        )
+        const target = updated.find((f) => f.file === fileInfo.file)
+        if (target) scheduleProcess(target)
+        return updated
+      })
+    },
+    [scheduleProcess]
   )
 
   // 处理文件选择
@@ -151,14 +179,16 @@ export default function ImageSplitter() {
           slices: [],
           info: null,
           status: 'pending' as const,
+          rotation: 0,
+          cropRect: { x: 0, y: 0, width: 0, height: 0 },
         }))
 
       if (newFiles.length > 0) {
         setFiles((prev) => [...prev, ...newFiles])
-        await processFiles(newFiles)
+        // cropRect 会在 CropEditor 加载图片后自动设为全图，再触发分割
       }
     },
-    [processFiles]
+    []
   )
 
   // 拖拽事件
@@ -265,96 +295,26 @@ export default function ImageSplitter() {
       // 清理旧的 slice URL
       files.forEach((f) => f.slices.forEach((s) => URL.revokeObjectURL(s.url)))
 
-      setFiles((prev) => {
-        const updated = prev.map((f) => ({
+      setFiles((prev) =>
+        prev.map((f) => ({
           ...f,
           slices: [],
           info: null,
-          status: (f.status === 'completed' || f.status === 'pending'
-            ? 'pending'
-            : f.status) as FileInfo['status'],
+          status: 'pending' as const,
         }))
+      )
 
-        setTimeout(() => {
-          const toProcess = updated.filter((f) => f.status === 'pending')
-          if (toProcess.length > 0) {
-            processFilesWith(toProcess, format, rotation, cropDirection)
-          }
-        }, 100)
-
-        return updated
-      })
+      // 用新格式重新处理所有文件
+      files.forEach((f) => processOneFile({ ...f }, format))
     },
-    [files, outputFormat, rotation, cropDirection, processFilesWith]
+    [files, outputFormat, processOneFile]
   )
 
-  // 切换旋转方向：重新分割已有文件
-  const handleRotationChange = useCallback(
-    async (newRotation: RotationOption) => {
-      if (newRotation === rotation) return
-      setRotation(newRotation)
-
-      if (files.length === 0) return
-
-      // 清理旧的 slice URL
-      files.forEach((f) => f.slices.forEach((s) => URL.revokeObjectURL(s.url)))
-
-      setFiles((prev) => {
-        const updated = prev.map((f) => ({
-          ...f,
-          slices: [],
-          info: null,
-          status: (f.status === 'completed' || f.status === 'pending'
-            ? 'pending'
-            : f.status) as FileInfo['status'],
-        }))
-
-        setTimeout(() => {
-          const toProcess = updated.filter((f) => f.status === 'pending')
-          if (toProcess.length > 0) {
-            processFilesWith(toProcess, outputFormat, newRotation, cropDirection)
-          }
-        }, 100)
-
-        return updated
-      })
-    },
-    [files, rotation, outputFormat, cropDirection, processFilesWith]
-  )
-
-  // 切换裁切方向：重新分割已有文件
-  const handleCropDirectionChange = useCallback(
-    async (newCropDirection: CropDirection) => {
-      if (newCropDirection === cropDirection) return
-      setCropDirection(newCropDirection)
-
-      if (files.length === 0) return
-
-      // 清理旧的 slice URL
-      files.forEach((f) => f.slices.forEach((s) => URL.revokeObjectURL(s.url)))
-
-      setFiles((prev) => {
-        const updated = prev.map((f) => ({
-          ...f,
-          slices: [],
-          info: null,
-          status: (f.status === 'completed' || f.status === 'pending'
-            ? 'pending'
-            : f.status) as FileInfo['status'],
-        }))
-
-        setTimeout(() => {
-          const toProcess = updated.filter((f) => f.status === 'pending')
-          if (toProcess.length > 0) {
-            processFilesWith(toProcess, outputFormat, rotation, newCropDirection)
-          }
-        }, 100)
-
-        return updated
-      })
-    },
-    [files, cropDirection, outputFormat, rotation, processFilesWith]
-  )
+  // isProcessing 状态跟踪
+  useEffect(() => {
+    const anyProcessing = files.some((f) => f.status === 'processing')
+    setIsProcessing(anyProcessing)
+  }, [files])
 
   const totalSlices = files.reduce(
     (sum, f) => sum + (f.status === 'completed' ? f.slices.length : 0),
@@ -385,10 +345,10 @@ export default function ImageSplitter() {
         <div className="space-y-4">
           <div className="text-5xl mb-4">🖼️</div>
           <p className="text-lg font-medium text-gray-700 dark:text-gray-300">
-            拖拽横版图片到此处或点击选择文件
+            拖拽图片到此处或点击选择文件
           </p>
           <p className="text-sm text-gray-500 dark:text-gray-400">
-            自动将横版照片分割为多张 3:4 竖版照片，左右两侧自动裁切以得到整数张
+            可手动旋转原图并拖动四条边线调整裁切区域，自动分割为多张 3:4 竖版照片
           </p>
 
           {/* 输出格式选择器 */}
@@ -408,62 +368,6 @@ export default function ImageSplitter() {
                   }`}
                 >
                   {format}
-                </button>
-              ))}
-            </div>
-          </div>
-
-          {/* 原图旋转方向选择器 */}
-          <div className="flex flex-col items-center gap-3">
-            <label className="text-sm font-medium text-gray-700 dark:text-gray-300">
-              原图旋转：
-            </label>
-            <div className="flex gap-2">
-              {(
-                [
-                  { value: 0 as RotationOption, label: '不旋转' },
-                  { value: 270 as RotationOption, label: '左转 90°' },
-                  { value: 90 as RotationOption, label: '右转 90°' },
-                ]
-              ).map((opt) => (
-                <button
-                  key={opt.value}
-                  onClick={() => handleRotationChange(opt.value)}
-                  className={`px-4 py-2 rounded-lg transition-colors font-medium ${
-                    rotation === opt.value
-                      ? 'bg-blue-600 text-white'
-                      : 'bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-300 dark:hover:bg-gray-600'
-                  }`}
-                >
-                  {opt.label}
-                </button>
-              ))}
-            </div>
-          </div>
-
-          {/* 裁切方向选择器 */}
-          <div className="flex flex-col items-center gap-3">
-            <label className="text-sm font-medium text-gray-700 dark:text-gray-300">
-              裁切方向：
-            </label>
-            <div className="flex gap-2">
-              {(
-                [
-                  { value: 'auto' as CropDirection, label: '自动' },
-                  { value: 'leftright' as CropDirection, label: '裁切左右' },
-                  { value: 'topbottom' as CropDirection, label: '裁切上下' },
-                ]
-              ).map((opt) => (
-                <button
-                  key={opt.value}
-                  onClick={() => handleCropDirectionChange(opt.value)}
-                  className={`px-4 py-2 rounded-lg transition-colors font-medium ${
-                    cropDirection === opt.value
-                      ? 'bg-blue-600 text-white'
-                      : 'bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-300 dark:hover:bg-gray-600'
-                  }`}
-                >
-                  {opt.label}
                 </button>
               ))}
             </div>
@@ -519,27 +423,21 @@ export default function ImageSplitter() {
                     </p>
                     {fileInfo.info && (
                       <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                        原图 {fileInfo.info.originalWidth}×
+                        {fileInfo.info.originalHeight}px
                         {fileInfo.info.rotation !== 0 && (
-                          <>
-                            原图先{fileInfo.info.rotation === 270 ? '左转' : '右转'}90°（
-                            {fileInfo.info.originalWidth}×
-                            {fileInfo.info.originalHeight}px），
-                          </>
+                          <>，旋转 {Math.round(fileInfo.info.rotation)}°</>
                         )}
-                        {fileInfo.info.rotation === 0 && (
-                          <>原图 {fileInfo.info.originalWidth}×{fileInfo.info.originalHeight}px，</>
-                        )}
-                        分割为 {fileInfo.info.sliceCount} 张 3:4 竖版照片（
+                        ，裁切后 {Math.round(fileInfo.info.sourceWidth)}×
+                        {Math.round(fileInfo.info.sourceHeight)}px，分割为{' '}
+                        {fileInfo.info.sliceCount} 张 3:4 竖版照片（
                         {Math.round(fileInfo.info.sliceWidth)}×
-                        {Math.round(fileInfo.info.sliceHeight)}px），
-                        {fileInfo.info.cropDirection === 'leftright'
-                          ? `左右各裁切 ${Math.round(fileInfo.info.cropLeft)}px`
-                          : `上下各裁切 ${Math.round(fileInfo.info.cropTop)}px`}
+                        {Math.round(fileInfo.info.sliceHeight)}px）
                       </p>
                     )}
                     <div className="mt-2">
-                      {fileInfo.status === 'pending' && (
-                        <span className="text-xs text-gray-500">等待分割...</span>
+                      {fileInfo.status === 'pending' && fileInfo.cropRect.width === 0 && (
+                        <span className="text-xs text-gray-500">加载中...</span>
                       )}
                       {fileInfo.status === 'processing' && (
                         <span className="text-xs text-blue-600">分割中...</span>
@@ -570,6 +468,17 @@ export default function ImageSplitter() {
                       移除
                     </button>
                   </div>
+                </div>
+
+                {/* 裁切编辑器 */}
+                <div className="mb-4">
+                  <CropEditor
+                    file={fileInfo.file}
+                    rotation={fileInfo.rotation}
+                    cropRect={fileInfo.cropRect}
+                    onRotationChange={(r) => updateRotation(fileInfo, r)}
+                    onCropChange={(c) => updateCrop(fileInfo, c)}
+                  />
                 </div>
 
                 {/* 分割结果预览 */}

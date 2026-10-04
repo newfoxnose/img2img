@@ -1,7 +1,8 @@
 /**
  * 图片分割工具函数
  * 将横版照片分割成多张竖版照片，每张竖版照片宽高比为 3:4
- * 分割前会先对原图进行裁切，使分割结果为整数张
+ * 固定分割方向：裁切左右两侧，沿水平方向分割
+ * 分割前可对原图进行任意角度旋转，并可指定裁切区域
  */
 
 import { type OutputFormat, FORMAT_CONFIGS } from './imageConverter'
@@ -10,20 +11,14 @@ import { type OutputFormat, FORMAT_CONFIGS } from './imageConverter'
 const TARGET_RATIO = 3 / 4
 
 /**
- * 旋转方向选项
- * - 0: 不旋转
- * - 90: 右转 90°（顺时针）
- * - 270: 左转 90°（逆时针）
+ * 裁切区域（基于旋转后画布的像素坐标）
  */
-export type RotationOption = 0 | 90 | 270
-
-/**
- * 裁切方向选项
- * - auto: 自动（横版裁左右、竖版裁上下）
- * - leftright: 裁切左右两侧，保持完整高度，沿水平方向分割
- * - topbottom: 裁切上下两侧，保持完整宽度，沿垂直方向分割
- */
-export type CropDirection = 'auto' | 'leftright' | 'topbottom'
+export interface CropRect {
+  x: number
+  y: number
+  width: number
+  height: number
+}
 
 // 分割结果信息
 export interface SplitInfo {
@@ -33,22 +28,24 @@ export interface SplitInfo {
   sliceHeight: number
   /** 分割得到的竖版照片数量 */
   sliceCount: number
-  /** 原图左侧裁切像素数 */
+  /** 左侧裁切像素数（左右均分） */
   cropLeft: number
-  /** 原图顶部裁切像素数 */
+  /** 顶部裁切像素数 */
   cropTop: number
-  /** 原图右侧裁切像素数 */
+  /** 右侧裁切像素数 */
   cropRight: number
-  /** 原图底部裁切像素数 */
+  /** 底部裁切像素数 */
   cropBottom: number
+  /** 参与分割的源图宽度 */
+  sourceWidth: number
+  /** 参与分割的源图高度 */
+  sourceHeight: number
   /** 原图宽度 */
   originalWidth: number
   /** 原图高度 */
   originalHeight: number
-  /** 分割前应用的旋转角度（0 / 90 / 270） */
-  rotation: RotationOption
-  /** 裁切方向 */
-  cropDirection: CropDirection
+  /** 分割前应用的旋转角度（度） */
+  rotation: number
 }
 
 /**
@@ -83,18 +80,36 @@ function loadImage(file: File): Promise<HTMLImageElement> {
 }
 
 /**
- * 将图片按指定角度旋转并绘制到新的 Canvas 上
- * 仅支持 0° / 90°（顺时针右转）/ 270°（逆时针左转）
+ * 计算图片旋转任意角度后的画布尺寸
  */
-function rotateImage(
+export function getRotatedDimensions(
+  width: number,
+  height: number,
+  angleDeg: number
+): { width: number; height: number } {
+  const rad = (angleDeg * Math.PI) / 180
+  const cos = Math.abs(Math.cos(rad))
+  const sin = Math.abs(Math.sin(rad))
+  return {
+    width: Math.round(width * cos + height * sin),
+    height: Math.round(width * sin + height * cos),
+  }
+}
+
+/**
+ * 将图片按任意角度旋转并绘制到新的 Canvas 上
+ * 角度单位为度，正数顺时针旋转
+ */
+export function rotateImage(
   img: HTMLImageElement,
-  rotation: RotationOption
+  angleDeg: number
 ): HTMLCanvasElement {
   const canvas = document.createElement('canvas')
   const W = img.width
   const H = img.height
 
-  if (rotation === 0) {
+  const normalized = ((angleDeg % 360) + 360) % 360
+  if (normalized === 0) {
     canvas.width = W
     canvas.height = H
     const ctx = canvas.getContext('2d')
@@ -102,109 +117,78 @@ function rotateImage(
     return canvas
   }
 
-  // 旋转 90° 后宽高互换
-  canvas.width = H
-  canvas.height = W
+  const { width: rotW, height: rotH } = getRotatedDimensions(W, H, angleDeg)
+  canvas.width = rotW
+  canvas.height = rotH
   const ctx = canvas.getContext('2d')
   if (!ctx) return canvas
 
-  if (rotation === 90) {
-    // 顺时针旋转 90°（右转）
-    ctx.translate(H, 0)
-    ctx.rotate(Math.PI / 2)
-  } else {
-    // 逆时针旋转 90°（左转）
-    ctx.translate(0, W)
-    ctx.rotate(-Math.PI / 2)
-  }
-  ctx.drawImage(img, 0, 0)
+  const rad = (angleDeg * Math.PI) / 180
+  ctx.translate(rotW / 2, rotH / 2)
+  ctx.rotate(rad)
+  ctx.drawImage(img, -W / 2, -H / 2)
   return canvas
 }
 
 /**
- * 将一张图片分割成多张 3:4 竖版图片
- *
- * 分割逻辑：
- * - 裁切左右（leftright）：保持原图高度不变，每张竖版高度 = 原图高度，
- *   每张宽度 = 原图高度 × (3/4)，沿水平方向分割，左右两侧均分裁切多余部分
- * - 裁切上下（topbottom）：保持原图宽度不变，每张竖版宽度 = 原图宽度，
- *   每张高度 = 原图宽度 × (4/3)，沿垂直方向分割，上下两侧均分裁切多余部分
- * - 自动（auto）：横版图片走裁切左右，竖版图片走裁切上下
- *
- * @param file 原始图片文件
- * @param outputFormat 输出格式（jpg、png、webp）
- * @param rotation 原图旋转方向：0 不旋转 / 90 右转 / 270 左转（旋转后再分割）
- * @param cropDirection 裁切方向：auto / leftright / topbottom
- * @returns Promise<{ blobs: Blob[]; info: SplitInfo }>
+ * 将一个 Canvas（或其指定裁切区域）分割成多张 3:4 竖版图片
+ * 固定方向：裁切左右两侧，沿水平方向分割
  */
-export async function splitImageToPortraits(
-  file: File,
-  outputFormat: OutputFormat = 'jpg',
-  rotation: RotationOption = 0,
-  cropDirection: CropDirection = 'auto'
+function splitSourceToPortraits(
+  source: HTMLCanvasElement,
+  cropRect: CropRect | null,
+  outputFormat: OutputFormat,
+  originalWidth: number,
+  originalHeight: number,
+  rotation: number
 ): Promise<{ blobs: Blob[]; info: SplitInfo }> {
-  const img = await loadImage(file)
+  // 若指定了裁切区域，先裁切到工作画布
+  let workCanvas = source
+  if (cropRect) {
+    workCanvas = document.createElement('canvas')
+    workCanvas.width = Math.max(1, Math.round(cropRect.width))
+    workCanvas.height = Math.max(1, Math.round(cropRect.height))
+    const ctx = workCanvas.getContext('2d')
+    if (ctx) {
+      ctx.drawImage(
+        source,
+        cropRect.x,
+        cropRect.y,
+        cropRect.width,
+        cropRect.height,
+        0,
+        0,
+        workCanvas.width,
+        workCanvas.height
+      )
+    }
+  }
 
-  // 先按指定方向旋转原图，再基于旋转后的画布进行分割
-  const source = rotateImage(img, rotation)
-  const W = source.width
-  const H = source.height
+  const W = workCanvas.width
+  const H = workCanvas.height
 
-  // 解析最终裁切方向：auto 模式下根据图片比例自动选择
-  const finalDirection: 'leftright' | 'topbottom' =
-    cropDirection === 'auto'
-      ? W >= TARGET_RATIO * H
-        ? 'leftright'
-        : 'topbottom'
-      : cropDirection
-
-  let sliceCount: number
-  let sliceWidth: number
-  let sliceHeight: number
+  // 固定裁切左右：保持高度不变，每张竖版高度 = 工作图高度，宽度 = 高度 × 3/4
+  let sliceHeight = H
+  let sliceWidth = TARGET_RATIO * H
+  let sliceCount = Math.floor(W / sliceWidth)
   let cropLeft: number
   let cropTop: number
-  // 实际执行的裁切方向（所选方向放不下时会回退）
-  let actualDirection: 'leftright' | 'topbottom' = finalDirection
 
-  if (finalDirection === 'leftright') {
-    // 裁切左右：保持高度，按宽度水平分割
-    sliceHeight = H
-    sliceWidth = TARGET_RATIO * H
-    sliceCount = Math.floor(W / sliceWidth)
-    if (sliceCount >= 1) {
-      cropLeft = (W - sliceCount * sliceWidth) / 2
-      cropTop = 0
-    } else {
-      // 宽度不足以容纳一张完整 3:4 切片，回退为裁切上下生成 1 张
-      actualDirection = 'topbottom'
-      sliceCount = 1
-      sliceWidth = W
-      sliceHeight = W / TARGET_RATIO
-      cropLeft = 0
-      cropTop = (H - sliceHeight) / 2
-    }
+  if (sliceCount >= 1) {
+    // 横版：裁切左右，沿水平方向分割为整数张
+    cropLeft = (W - sliceCount * sliceWidth) / 2
+    cropTop = 0
   } else {
-    // 裁切上下：保持宽度，按高度垂直分割
+    // 竖版（宽度不足一张 3:4）：回退为裁切上下，输出 1 张 3:4 竖版照片
+    sliceCount = 1
     sliceWidth = W
-    sliceHeight = W / TARGET_RATIO // = W * 4 / 3
-    sliceCount = Math.floor(H / sliceHeight)
-    if (sliceCount >= 1) {
-      cropLeft = 0
-      cropTop = (H - sliceCount * sliceHeight) / 2
-    } else {
-      // 高度不足以容纳一张完整 3:4 切片，回退为裁切左右生成 1 张
-      actualDirection = 'leftright'
-      sliceCount = 1
-      sliceHeight = H
-      sliceWidth = TARGET_RATIO * H
-      cropLeft = (W - sliceWidth) / 2
-      cropTop = 0
-    }
+    sliceHeight = W / TARGET_RATIO // = W × 4/3
+    cropLeft = 0
+    cropTop = (H - sliceHeight) / 2
   }
 
   const config = FORMAT_CONFIGS[outputFormat]
 
-  // 逐张绘制并转为 Blob，使用 Promise.all 保证顺序
   const slicePromises: Promise<Blob>[] = []
 
   for (let i = 0; i < sliceCount; i++) {
@@ -220,26 +204,24 @@ export async function splitImageToPortraits(
           return
         }
 
-        // JPG / WebP 不支持透明，填充白色背景
         if (outputFormat !== 'png') {
           ctx.fillStyle = '#FFFFFF'
           ctx.fillRect(0, 0, canvas.width, canvas.height)
         }
 
-        // 根据实际裁切方向计算源图起始坐标
-        const sx = actualDirection === 'leftright' ? cropLeft + i * sliceWidth : cropLeft
-        const sy = actualDirection === 'topbottom' ? cropTop + i * sliceHeight : cropTop
+        const sx = cropLeft + i * sliceWidth
+        const sy = cropTop
 
         ctx.drawImage(
-          source,
-          sx, // 源图起始 x
-          sy, // 源图起始 y
-          sliceWidth, // 源图宽度
-          sliceHeight, // 源图高度
-          0, // 目标 x
-          0, // 目标 y
-          sliceWidth, // 目标宽度
-          sliceHeight // 目标高度
+          workCanvas,
+          sx,
+          sy,
+          sliceWidth,
+          sliceHeight,
+          0,
+          0,
+          sliceWidth,
+          sliceHeight
         )
 
         canvas.toBlob(
@@ -257,21 +239,57 @@ export async function splitImageToPortraits(
     )
   }
 
-  const blobs = await Promise.all(slicePromises)
+  return Promise.all(slicePromises).then((blobs) => {
+    const info: SplitInfo = {
+      sliceWidth,
+      sliceHeight,
+      sliceCount,
+      cropLeft,
+      cropTop,
+      cropRight: W - cropLeft - sliceCount * sliceWidth,
+      cropBottom: H - cropTop - sliceCount * sliceHeight,
+      sourceWidth: W,
+      sourceHeight: H,
+      originalWidth,
+      originalHeight,
+      rotation,
+    }
+    return { blobs, info }
+  })
+}
 
-  const info: SplitInfo = {
-    sliceWidth,
-    sliceHeight,
-    sliceCount,
-    cropLeft,
-    cropTop,
-    cropRight: W - cropLeft - sliceCount * sliceWidth,
-    cropBottom: H - cropTop - sliceCount * sliceHeight,
-    originalWidth: W,
-    originalHeight: H,
-    rotation,
-    cropDirection: actualDirection,
-  }
+/**
+ * 将一张图片分割成多张 3:4 竖版图片
+ *
+ * 固定分割逻辑：裁切左右两侧，沿水平方向分割
+ * - 保持原图（旋转后）高度不变
+ * - 每张竖版高度 = 源图高度，宽度 = 源图高度 × (3/4)
+ * - 左右两侧均分裁切多余部分以得到整数张
+ *
+ * @param file 原始图片文件
+ * @param outputFormat 输出格式（jpg、png、webp）
+ * @param rotation 原图旋转角度（度，正数顺时针）
+ * @param cropRect 可选裁切区域（基于旋转后画布坐标），不传则使用整张旋转后的图
+ * @returns Promise<{ blobs: Blob[]; info: SplitInfo }>
+ */
+export async function splitImageToPortraits(
+  file: File,
+  outputFormat: OutputFormat = 'jpg',
+  rotation: number = 0,
+  cropRect: CropRect | null = null
+): Promise<{ blobs: Blob[]; info: SplitInfo }> {
+  const img = await loadImage(file)
+  const originalWidth = img.width
+  const originalHeight = img.height
 
-  return { blobs, info }
+  const source = rotateImage(img, rotation)
+
+  return splitSourceToPortraits(
+    source,
+    cropRect,
+    outputFormat,
+    originalWidth,
+    originalHeight,
+    rotation
+  )
 }
