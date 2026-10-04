@@ -22,6 +22,13 @@ export default function RootLayout({
     <html lang="zh-CN">
       <head>
         <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        {/* Google AdSense */}
+        <Script
+          async
+          src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-6721623848988004"
+          crossOrigin="anonymous"
+          strategy="afterInteractive"
+        />
       </head>
       <body className="antialiased">
         {children}
