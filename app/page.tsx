@@ -1,190 +1,144 @@
-'use client'
+import Link from 'next/link'
+import Footer from '@/components/shared/Footer'
 
-import { useState } from 'react'
-import ImageConverter from '@/components/ImageConverter'
-import IDPhotoConverter from '@/components/IDPhotoConverter'
-import ImageSplitter from '@/components/ImageSplitter'
+interface ToolItem {
+  href: string
+  icon: string
+  title: string
+  description: string
+  tags: string[]
+}
 
-type TabType = 'convert' | 'idphoto' | 'split'
+const tools: ToolItem[] = [
+  {
+    href: '/image',
+    icon: '🖼️',
+    title: '图片处理',
+    description:
+      '图片格式转换、证件照制作与图片分割，支持批量处理、ZIP 打包下载和 AI 智能抠图换背景。',
+    tags: ['格式转换', '证件照', '图片分割'],
+  },
+  {
+    href: '/jsonformatter',
+    icon: '{ }',
+    title: 'JSON 格式化',
+    description:
+      '在线 JSON 格式化、压缩与实时校验，支持语法高亮、树形视图，帮助开发者快速阅读和编辑 JSON 数据。',
+    tags: ['格式化', '校验', '语法高亮'],
+  },
+  {
+    href: '/vardump',
+    icon: '🐘',
+    title: 'var_dump 格式化',
+    description:
+      'PHP var_dump 输出美化工具，支持语法高亮、折叠展开、类型识别以及数组与对象的结构化解析。',
+    tags: ['PHP', '调试', '数组解析'],
+  },
+  {
+    href: '/gbk2gb2312',
+    icon: '🔤',
+    title: 'GBK 转 GB2312',
+    description:
+      '智能检测 GB2312 之外的 GBK 扩展字，按发音与字形优先级自动替换为最接近的 GB2312 字符，输出兼容文本。',
+    tags: ['编码转换', '相似字替换', '中文处理'],
+  },
+]
 
 export default function Home() {
-  const [activeTab, setActiveTab] = useState<TabType>('convert')
-
   return (
     <main className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900">
-      <div className="container mx-auto px-4 py-8 md:py-12">
+      <div className="container mx-auto px-4 py-12 md:py-20">
         {/* 页面标题和描述 */}
-        <header className="text-center mb-8 md:mb-12">
+        <header className="text-center mb-12 md:mb-16">
           <h1 className="text-4xl md:text-5xl font-bold text-gray-900 dark:text-white mb-4">
-            图片处理工具
+            在线工具合集
           </h1>
           <p className="text-lg md:text-xl text-gray-600 dark:text-gray-300 max-w-2xl mx-auto">
-            支持图片格式转换和证件照处理，单个文件处理或批量处理，转换后自动打包下载
+            汇集图片处理与开发者常用小工具，即开即用，所有处理均在浏览器本地完成
           </p>
         </header>
 
-        {/* 标签页切换 */}
-        <div className="flex justify-center mb-8">
-          <div className="inline-flex bg-white dark:bg-gray-800 rounded-lg p-1 shadow-md">
-            <button
-              onClick={() => setActiveTab('convert')}
-              className={`px-6 py-2 rounded-md transition-colors font-medium ${
-                activeTab === 'convert'
-                  ? 'bg-blue-600 text-white'
-                  : 'text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700'
-              }`}
+        {/* 工具卡片 */}
+        <section className="grid grid-cols-1 sm:grid-cols-2 gap-6 max-w-5xl mx-auto">
+          {tools.map((tool) => (
+            <Link
+              key={tool.href}
+              href={tool.href}
+              className="group bg-white dark:bg-gray-800 rounded-xl p-6 md:p-8 shadow-md hover:shadow-xl transition-all duration-200 hover:-translate-y-1 border border-transparent hover:border-blue-200 dark:hover:border-blue-800 flex flex-col"
             >
-              格式转换
-            </button>
-            <button
-              onClick={() => setActiveTab('idphoto')}
-              className={`px-6 py-2 rounded-md transition-colors font-medium ${
-                activeTab === 'idphoto'
-                  ? 'bg-blue-600 text-white'
-                  : 'text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700'
-              }`}
-            >
-              证件照处理
-            </button>
-            <button
-              onClick={() => setActiveTab('split')}
-              className={`px-6 py-2 rounded-md transition-colors font-medium ${
-                activeTab === 'split'
-                  ? 'bg-blue-600 text-white'
-                  : 'text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700'
-              }`}
-            >
-              图片分割
-            </button>
-          </div>
-        </div>
+              <div className="flex items-center mb-4">
+                <div className="w-12 h-12 flex items-center justify-center rounded-lg bg-blue-50 dark:bg-gray-700 text-2xl font-mono font-bold text-blue-600 dark:text-blue-400 mr-4 select-none">
+                  {tool.icon}
+                </div>
+                <h2 className="text-xl md:text-2xl font-semibold text-gray-900 dark:text-white group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">
+                  {tool.title}
+                </h2>
+              </div>
+              <p className="text-gray-600 dark:text-gray-300 text-sm md:text-base leading-relaxed flex-1">
+                {tool.description}
+              </p>
+              <div className="flex flex-wrap gap-2 mt-5">
+                {tool.tags.map((tag) => (
+                  <span
+                    key={tag}
+                    className="px-2.5 py-1 text-xs rounded-full bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300"
+                  >
+                    {tag}
+                  </span>
+                ))}
+              </div>
+              <div className="mt-5 text-sm font-medium text-blue-600 dark:text-blue-400 inline-flex items-center">
+                立即使用
+                <svg
+                  className="w-4 h-4 ml-1 transition-transform group-hover:translate-x-1"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                  aria-hidden="true"
+                >
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                </svg>
+              </div>
+            </Link>
+          ))}
+        </section>
 
-        {/* 主要转换组件 */}
-        {activeTab === 'convert' ? (
-          <ImageConverter />
-        ) : activeTab === 'idphoto' ? (
-          <IDPhotoConverter />
-        ) : (
-          <ImageSplitter />
-        )}
-
-        {/* 功能说明区域 */}
-        <section className="mt-12 md:mt-16 max-w-4xl mx-auto">
-          <h2 className="text-2xl md:text-3xl font-semibold text-gray-900 dark:text-white mb-6 text-center">
-            功能特点
-          </h2>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-            <div className="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-md hover:shadow-lg transition-shadow">
-              <div className="text-3xl mb-3">🔄</div>
-              <h3 className="text-xl font-semibold text-gray-900 dark:text-white mb-2">
-                格式转换
+        {/* 特点说明 */}
+        <section className="mt-16 md:mt-20 max-w-4xl mx-auto">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <div className="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-md text-center">
+              <div className="text-3xl mb-3">⚡</div>
+              <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">
+                即开即用
               </h3>
-              <p className="text-gray-600 dark:text-gray-300">
-                支持 JPG、PNG、WebP、GIF、BMP、TIFF、SVG、ICO 等多种格式，可转换为 JPG、PNG 或 WebP 格式
+              <p className="text-sm text-gray-600 dark:text-gray-300">
+                无需注册登录，打开网页即可使用，支持响应式布局
               </p>
             </div>
-            <div className="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-md hover:shadow-lg transition-shadow">
-              <div className="text-3xl mb-3">📷</div>
-              <h3 className="text-xl font-semibold text-gray-900 dark:text-white mb-2">
-                证件照处理
-              </h3>
-              <p className="text-gray-600 dark:text-gray-300">
-                支持 1寸、大2寸等标准尺寸，可裁剪头像范围，调整亮度和对比度，AI 智能抠图换背景（基于 IMG.LY 背景去除引擎）
-              </p>
-            </div>
-            <div className="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-md hover:shadow-lg transition-shadow">
-              <div className="text-3xl mb-3">📦</div>
-              <h3 className="text-xl font-semibold text-gray-900 dark:text-white mb-2">
-                批量处理
-              </h3>
-              <p className="text-gray-600 dark:text-gray-300">
-                一次上传多个文件，批量转换后自动打包成 ZIP 文件下载
-              </p>
-            </div>
-            <div className="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-md hover:shadow-lg transition-shadow">
+            <div className="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-md text-center">
               <div className="text-3xl mb-3">🔒</div>
-              <h3 className="text-xl font-semibold text-gray-900 dark:text-white mb-2">
+              <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">
                 隐私安全
               </h3>
-              <p className="text-gray-600 dark:text-gray-300">
-                所有转换在浏览器本地完成，图片不会上传到服务器
+              <p className="text-sm text-gray-600 dark:text-gray-300">
+                所有数据在浏览器本地处理，文件与文本不会上传到服务器
+              </p>
+            </div>
+            <div className="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-md text-center">
+              <div className="text-3xl mb-3">🆓</div>
+              <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">
+                完全免费
+              </h3>
+              <p className="text-sm text-gray-600 dark:text-gray-300">
+                全部工具免费开放使用，持续更新更多实用功能
               </p>
             </div>
           </div>
         </section>
-
-        {/* 使用说明 */}
-        {activeTab === 'convert' ? (
-          <section className="mt-12 md:mt-16 max-w-4xl mx-auto">
-            <h2 className="text-2xl md:text-3xl font-semibold text-gray-900 dark:text-white mb-6 text-center">
-              格式转换使用说明
-            </h2>
-            <div className="bg-white dark:bg-gray-800 p-6 md:p-8 rounded-lg shadow-md">
-              <ol className="list-decimal list-inside space-y-4 text-gray-700 dark:text-gray-300">
-                <li>选择输出格式（JPG、PNG 或 WebP）</li>
-                <li>点击上传区域或拖拽图片文件到指定区域</li>
-                <li>支持上传 JPG、JFIF、WebP、PNG、GIF、BMP、TIFF、SVG、ICO 等格式的图片文件</li>
-                <li>单个文件转换：上传后自动转换，点击下载按钮保存</li>
-                <li>批量转换：上传多个文件，转换完成后点击"打包下载"按钮</li>
-                <li>所有转换操作在浏览器本地完成，保护您的隐私</li>
-              </ol>
-            </div>
-          </section>
-        ) : activeTab === 'idphoto' ? (
-          <section className="mt-12 md:mt-16 max-w-4xl mx-auto">
-            <h2 className="text-2xl md:text-3xl font-semibold text-gray-900 dark:text-white mb-6 text-center">
-              证件照处理使用说明
-            </h2>
-            <div className="bg-white dark:bg-gray-800 p-6 md:p-8 rounded-lg shadow-md">
-              <ol className="list-decimal list-inside space-y-4 text-gray-700 dark:text-gray-300">
-                <li>选择证件照尺寸（1寸 宽295×高413px 或 大2寸 宽413×高626px）</li>
-                <li>点击上传区域或拖拽照片文件到指定区域，支持批量上传</li>
-                <li>点击"编辑"按钮打开编辑器，可以调整裁剪区域（拖动移动、拖动四角缩放）</li>
-                <li>使用滑块调整亮度、对比度和饱和度，实时预览效果</li>
-                <li>
-                  选择背景颜色（白色、红色、宝蓝色、天蓝色），系统会自动使用 IMG.LY AI 引擎抠图并替换背景
-                </li>
-                <li>点击"批量处理"处理所有照片，或单独处理每个文件</li>
-                <li>处理完成后可以单独下载或批量打包下载</li>
-                <li>所有处理操作在浏览器本地完成，保护您的隐私</li>
-              </ol>
-            </div>
-          </section>
-        ) : (
-          <section className="mt-12 md:mt-16 max-w-4xl mx-auto">
-            <h2 className="text-2xl md:text-3xl font-semibold text-gray-900 dark:text-white mb-6 text-center">
-              图片分割使用说明
-            </h2>
-            <div className="bg-white dark:bg-gray-800 p-6 md:p-8 rounded-lg shadow-md">
-              <ol className="list-decimal list-inside space-y-4 text-gray-700 dark:text-gray-300">
-                <li>选择输出格式（JPG、PNG 或 WebP）</li>
-                <li>点击上传区域或拖拽图片文件到指定区域，支持批量上传</li>
-                <li>
-                  每张图片上传后会显示<strong>旋转滑块</strong>（0°–360°，可拖动或点击 0°/90°/180°/270° 快捷按钮），原图会先按所选角度旋转
-                </li>
-                <li>
-                  旋转后的图片上覆盖一个<strong>蓝色裁切框</strong>，可拖动四条边线（上、下、左、右）调整裁切区域的大小与位置
-                </li>
-                <li>
-                  调整旋转角度或裁切框后，系统会自动重新分割（固定沿水平方向裁切左右、分割为多张宽高比为 <strong>3:4</strong> 的竖版照片）
-                </li>
-                <li>
-                  分割时裁切区域左右两侧会均分裁切多余部分，使结果刚好为整数张
-                </li>
-                <li>可点击单张下载或"全部下载"保存某张原图的所有结果</li>
-                <li>也可点击"打包下载"将所有分割结果打包为 ZIP 文件一次性下载</li>
-                <li>所有处理操作在浏览器本地完成，保护您的隐私</li>
-              </ol>
-            </div>
-          </section>
-        )}
       </div>
 
       {/* 页脚 */}
-      <footer className="mt-16 py-8 text-center text-gray-600 dark:text-gray-400 border-t border-gray-200 dark:border-gray-700">
-        <p>© 2024 图片格式转换工具 - 免费在线图片格式转换服务</p>
-      </footer>
+      <Footer />
     </main>
   )
 }
-

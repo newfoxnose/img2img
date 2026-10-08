@@ -1,5 +1,5 @@
 {
-  "name": "img2img",
+  "name": "web-tools",
   "version": "1.0.0",
   "private": true,
   "scripts": {
@@ -13,7 +13,10 @@
     "face-api.js": "^0.22.2",
     "jszip": "^3.10.1",
     "next": "^14.0.0",
+    "opencc-js": "^1.4.2",
     "piexifjs": "^1.0.6",
+    "pinyin": "^4.0.0",
+    "pinyin-pro": "^3.29.4",
     "react": "^18.2.0",
     "react-dom": "^18.2.0"
   },

@@ -3,12 +3,15 @@ import Script from 'next/script'
 import './globals.css'
 
 export const metadata: Metadata = {
-  title: '图片格式转换工具 - 多格式图片在线转换器',
-  description: '免费在线图片格式转换工具，支持JPG、PNG、WebP、GIF、BMP、TIFF、SVG、ICO等多种格式转换，支持单个文件转换和批量转换，转换后可打包下载。快速、安全、无需上传服务器。',
-  keywords: '图片格式转换,JPG转PNG,WebP转JPG,PNG转JPG,图片批量转换,在线图片转换器,图片格式转换工具',
+  title: '在线工具合集 - 图片处理、JSON格式化、var_dump格式化、GBK转GB2312',
+  description:
+    '免费在线工具合集，包含图片格式转换/证件照/图片分割、JSON格式化与校验、PHP var_dump输出美化、GBK转GB2312字符替换等实用工具。所有处理在浏览器本地完成，安全无需上传。',
+  keywords:
+    '在线工具,工具合集,图片格式转换,证件照制作,图片分割,JSON格式化,var_dump格式化,GBK转GB2312',
   openGraph: {
-    title: '图片格式转换工具 - 多格式图片在线转换器',
-    description: '免费在线图片格式转换工具，支持JPG、PNG、WebP、GIF、BMP、TIFF、SVG、ICO等多种格式转换，支持单个文件转换和批量转换',
+    title: '在线工具合集 - 图片处理与开发者实用工具',
+    description:
+      '免费在线工具合集：图片处理、JSON 格式化、PHP var_dump 格式化、GBK 转 GB2312，浏览器本地处理，安全便捷。',
     type: 'website',
   },
 }

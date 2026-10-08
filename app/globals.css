@@ -14,8 +14,83 @@
   }
 }
 
-body {
-  color: var(--foreground);
-  background: var(--background);
+@layer base {
+  html {
+    scroll-behavior: smooth;
+  }
+
+  body {
+    @apply bg-gray-50 text-gray-900;
+  }
 }
 
+@layer components {
+  /* 代码块样式 */
+  .code-block {
+    @apply bg-gray-900 text-gray-100 rounded-lg p-4 font-mono text-sm overflow-x-auto;
+  }
+
+  /* 语法高亮样式 */
+  .syntax-string {
+    @apply text-php-green;
+  }
+
+  .syntax-number {
+    @apply text-php-blue;
+  }
+
+  .syntax-keyword {
+    @apply text-php-orange font-semibold;
+  }
+
+  .syntax-type {
+    @apply text-php-purple font-semibold;
+  }
+
+  .syntax-comment {
+    @apply text-php-gray italic;
+  }
+
+  .syntax-operator {
+    @apply text-php-yellow;
+  }
+
+  /* 折叠/展开按钮 */
+  .toggle-btn {
+    @apply inline-flex items-center justify-center w-6 h-6 rounded hover:bg-gray-700 transition-colors cursor-pointer;
+  }
+
+  /* 类型标签 */
+  .type-tag {
+    @apply inline-block px-2 py-1 text-xs font-semibold rounded;
+  }
+
+  .type-tag-string {
+    @apply bg-green-100 text-green-800;
+  }
+
+  .type-tag-number {
+    @apply bg-blue-100 text-blue-800;
+  }
+
+  .type-tag-array {
+    @apply bg-purple-100 text-purple-800;
+  }
+
+  .type-tag-object {
+    @apply bg-orange-100 text-orange-800;
+  }
+
+  .type-tag-boolean {
+    @apply bg-yellow-100 text-yellow-800;
+  }
+
+  .type-tag-null {
+    @apply bg-gray-100 text-gray-800;
+  }
+
+  /* 响应式容器 */
+  .container-responsive {
+    @apply max-w-7xl mx-auto px-4 sm:px-6 lg:px-8;
+  }
+}
