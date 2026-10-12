@@ -10,7 +10,7 @@ module.exports = {
       colors: {
         background: 'var(--background)',
         foreground: 'var(--foreground)',
-        // var_dump / GBK 工具代码高亮配色
+        // var_dump 工具代码高亮配色
         'php-orange': '#F97316',
         'php-blue': '#3B82F6',
         'php-green': '#10B981',

@@ -34,14 +34,6 @@ const tools: ToolItem[] = [
       'PHP var_dump 输出美化工具，支持语法高亮、折叠展开、类型识别以及数组与对象的结构化解析。',
     tags: ['PHP', '调试', '数组解析'],
   },
-  {
-    href: '/gbk2gb2312',
-    icon: '🔤',
-    title: 'GBK 转 GB2312',
-    description:
-      '智能检测 GB2312 之外的 GBK 扩展字，按发音与字形优先级自动替换为最接近的 GB2312 字符，输出兼容文本。',
-    tags: ['编码转换', '相似字替换', '中文处理'],
-  },
 ]
 
 export default function Home() {

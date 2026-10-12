@@ -21,7 +21,6 @@ export default function Footer() {
               <li>图片格式转换与证件照制作</li>
               <li>JSON 格式化与实时校验</li>
               <li>PHP var_dump 输出美化</li>
-              <li>GBK 转 GB2312 智能替换</li>
               <li>响应式设计</li>
               <li>完全免费无需注册</li>
             </ul>
