@@ -19,6 +19,30 @@ const tools: ToolItem[] = [
     tags: ['格式转换', '证件照', '图片分割'],
   },
   {
+    href: '/ip',
+    icon: '🌐',
+    title: '本机 IP 查询',
+    description:
+      '在线查看本机局域网 IP（WebRTC）和公网 IP，一键复制，无需安装，浏览器本地获取。',
+    tags: ['本地IP', '公网IP', 'IP查询'],
+  },
+  {
+    href: '/timestamp',
+    icon: '⏱️',
+    title: '时间戳转换',
+    description:
+      'Unix 时间戳与日期时间互转，自动识别秒/毫秒，支持本地时区与 UTC，实时显示当前时间戳。',
+    tags: ['时间戳', '日期转换', 'Unix'],
+  },
+  {
+    href: '/md5',
+    icon: '#',
+    title: 'MD5 计算',
+    description:
+      '在线生成文本的 MD5 哈希值，支持大小写切换与多行批量计算，纯浏览器本地处理。',
+    tags: ['MD5', '哈希', '加密'],
+  },
+  {
     href: '/jsonformatter',
     icon: '{ }',
     title: 'JSON 格式化',

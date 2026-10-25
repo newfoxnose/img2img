@@ -3,15 +3,15 @@ import Script from 'next/script'
 import './globals.css'
 
 export const metadata: Metadata = {
-  title: '在线工具合集 - 图片处理、JSON格式化、var_dump格式化',
+  title: '在线工具合集 - 图片处理、IP查询、时间戳转换、MD5计算',
   description:
-    '免费在线工具合集，包含图片格式转换/证件照/图片分割、JSON格式化与校验、PHP var_dump输出美化等实用工具。所有处理在浏览器本地完成，安全无需上传。',
+    '免费在线工具合集，包含图片格式转换/证件照/图片分割、本机IP查询、时间戳转换、MD5计算、JSON格式化与校验、PHP var_dump输出美化等实用工具。所有处理在浏览器本地完成，安全无需上传。',
   keywords:
-    '在线工具,工具合集,图片格式转换,证件照制作,图片分割,JSON格式化,var_dump格式化',
+    '在线工具,工具合集,图片格式转换,证件照制作,图片分割,本机IP,IP查询,时间戳转换,MD5计算,JSON格式化,var_dump格式化',
   openGraph: {
     title: '在线工具合集 - 图片处理与开发者实用工具',
     description:
-      '免费在线工具合集：图片处理、JSON 格式化、PHP var_dump 格式化，浏览器本地处理，安全便捷。',
+      '免费在线工具合集：图片处理、IP查询、时间戳转换、MD5计算、JSON 格式化、PHP var_dump 格式化，浏览器本地处理，安全便捷。',
     type: 'website',
   },
 }
