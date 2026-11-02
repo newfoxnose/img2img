@@ -34,7 +34,7 @@ export default function ImageToolsPage() {
             图片处理工具
           </h1>
           <p className="text-lg md:text-xl text-gray-600 dark:text-gray-300 max-w-2xl mx-auto">
-            支持图片格式转换和证件照处理，单个文件处理或批量处理，转换后自动打包下载
+            支持图片格式转换、质量与尺寸压缩、水印添加、证件照处理和图片分割，单个文件处理或批量处理，转换后自动打包下载
           </p>
         </header>
 
@@ -88,7 +88,7 @@ export default function ImageToolsPage() {
           <h2 className="text-2xl md:text-3xl font-semibold text-gray-900 dark:text-white mb-6 text-center">
             功能特点
           </h2>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             <div className="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-md hover:shadow-lg transition-shadow">
               <div className="text-3xl mb-3">🔄</div>
               <h3 className="text-xl font-semibold text-gray-900 dark:text-white mb-2">
@@ -96,6 +96,24 @@ export default function ImageToolsPage() {
               </h3>
               <p className="text-gray-600 dark:text-gray-300">
                 支持 JPG、PNG、WebP、GIF、BMP、TIFF、SVG、ICO 等多种格式，可转换为 JPG、PNG 或 WebP 格式
+              </p>
+            </div>
+            <div className="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-md hover:shadow-lg transition-shadow">
+              <div className="text-3xl mb-3">📉</div>
+              <h3 className="text-xl font-semibold text-gray-900 dark:text-white mb-2">
+                图片压缩
+              </h3>
+              <p className="text-gray-600 dark:text-gray-300">
+                调整输出质量与最大宽高，或填写目标体积，自动迭代压缩 JPG/WebP，等比缩放且不放大
+              </p>
+            </div>
+            <div className="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-md hover:shadow-lg transition-shadow">
+              <div className="text-3xl mb-3">🖋️</div>
+              <h3 className="text-xl font-semibold text-gray-900 dark:text-white mb-2">
+                水印
+              </h3>
+              <p className="text-gray-600 dark:text-gray-300">
+                支持右下、居中、左下和平铺位置，可调不透明度与字号，文字带描边阴影，随转换一并生效
               </p>
             </div>
             <div className="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-md hover:shadow-lg transition-shadow">
@@ -113,16 +131,16 @@ export default function ImageToolsPage() {
                 批量处理
               </h3>
               <p className="text-gray-600 dark:text-gray-300">
-                一次上传多个文件，批量转换后自动打包成 ZIP 文件下载
+                一次上传多个文件，批量转换后自动打包成 ZIP 文件下载，同名文件自动添加序号避免冲突
               </p>
             </div>
             <div className="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-md hover:shadow-lg transition-shadow">
               <div className="text-3xl mb-3">🔒</div>
               <h3 className="text-xl font-semibold text-gray-900 dark:text-white mb-2">
-                隐私安全
+                隐私与 EXIF
               </h3>
               <p className="text-gray-600 dark:text-gray-300">
-                所有转换在浏览器本地完成，图片不会上传到服务器
+                所有转换在浏览器本地完成，图片不会上传到服务器；Canvas 重新编码会移除 EXIF 等元数据，隐私更好
               </p>
             </div>
           </div>
@@ -136,12 +154,26 @@ export default function ImageToolsPage() {
             </h2>
             <div className="bg-white dark:bg-gray-800 p-6 md:p-8 rounded-lg shadow-md">
               <ol className="list-decimal list-inside space-y-4 text-gray-700 dark:text-gray-300">
-                <li>选择输出格式（JPG、PNG 或 WebP）</li>
-                <li>点击上传区域或拖拽图片文件到指定区域</li>
+                <li>在转换参数面板中选择输出格式（JPG、PNG 或 WebP）</li>
+                <li>
+                  按需调整输出质量（10%–100%，JPG/WebP 生效；PNG 为无损格式，质量参数不可用）
+                </li>
+                <li>
+                  填写最大宽度/最大高度（px，留空或 0 表示不缩放），系统会等比缩放且不会放大原图
+                </li>
+                <li>
+                  可选填写目标体积（KB，仅 JPG/WebP 生效），系统会自动迭代降低质量逼近目标；若最低质量仍超出会标注“未达到目标体积”
+                </li>
+                <li>
+                  可选添加水印：填写文字后选择位置（右下/居中/左下/平铺），调整不透明度与字号；留空则不添加
+                </li>
+                <li>点击上传区域或拖拽图片文件到指定区域，支持多选</li>
                 <li>支持上传 JPG、JFIF、WebP、PNG、GIF、BMP、TIFF、SVG、ICO 等格式的图片文件</li>
-                <li>单个文件转换：上传后自动转换，点击下载按钮保存</li>
-                <li>批量转换：上传多个文件，转换完成后点击"打包下载"按钮</li>
-                <li>所有转换操作在浏览器本地完成，保护您的隐私</li>
+                <li>修改任意参数后会自动重新转换所有已上传文件，可查看每个文件的原大小、输出大小和压缩率</li>
+                <li>批量转换完成后点击"打包下载"按钮获取 ZIP 文件；同名文件会自动添加序号</li>
+                <li>
+                  所有转换操作在浏览器本地完成，保护您的隐私；Canvas 重新编码会移除 EXIF/元数据，证件照工具会写入 300 DPI
+                </li>
               </ol>
             </div>
           </section>

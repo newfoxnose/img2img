@@ -2,7 +2,6 @@
 
 import { useState, useRef, useEffect, useCallback } from 'react'
 import { CropParams, AdjustParams, IDPhotoSize, ID_PHOTO_SIZES, BackgroundColor } from '@/utils/idPhotoProcessor'
-import { autoDetectAndCrop } from '@/utils/faceDetection'
 import { BACKGROUND_COLORS } from '@/utils/backgroundReplacer'
 
 // 编辑器属性接口
@@ -413,6 +412,9 @@ export default function IDPhotoEditor({
       // 获取目标尺寸的宽高比
       const targetSize = ID_PHOTO_SIZES[size]
       const targetAspectRatio = targetSize.width / targetSize.height
+
+      // 按需加载人脸检测模块，避免 face-api 进入图片工具首屏 bundle
+      const { autoDetectAndCrop } = await import('@/utils/faceDetection')
 
       // 调用自动检测函数
       const cropParams = await autoDetectAndCrop(

@@ -1,150 +1,71 @@
 import Link from 'next/link'
 import Footer from '@/components/shared/Footer'
+import HomeTools from '@/components/home/HomeTools'
+import { SITE_DESCRIPTION, SITE_NAME, SITE_URL } from '@/lib/site'
 
-interface ToolItem {
-  href: string
-  icon: string
-  title: string
-  description: string
-  tags: string[]
+const jsonLd = {
+  '@context': 'https://schema.org',
+  '@graph': [
+    {
+      '@type': 'WebSite',
+      name: SITE_NAME,
+      url: SITE_URL,
+      description: SITE_DESCRIPTION,
+      inLanguage: 'zh-CN',
+    },
+    {
+      '@type': 'ItemList',
+      name: '在线工具列表',
+      itemListElement: [
+        { '@type': 'ListItem', position: 1, name: '图片处理', url: `${SITE_URL}/image` },
+        { '@type': 'ListItem', position: 2, name: 'Base64 编解码', url: `${SITE_URL}/base64` },
+        { '@type': 'ListItem', position: 3, name: 'URL 编解码', url: `${SITE_URL}/urlcodec` },
+        { '@type': 'ListItem', position: 4, name: '哈希计算', url: `${SITE_URL}/md5` },
+        { '@type': 'ListItem', position: 5, name: 'JSON 格式化', url: `${SITE_URL}/jsonformatter` },
+        { '@type': 'ListItem', position: 6, name: '时间戳转换', url: `${SITE_URL}/timestamp` },
+      ],
+    },
+  ],
 }
-
-const tools: ToolItem[] = [
-  {
-    href: '/image',
-    icon: '🖼️',
-    title: '图片处理',
-    description:
-      '图片格式转换、证件照制作与图片分割，支持批量处理、ZIP 打包下载和 AI 智能抠图换背景。',
-    tags: ['格式转换', '证件照', '图片分割'],
-  },
-  {
-    href: '/ip',
-    icon: '🌐',
-    title: '本机 IP 查询',
-    description:
-      '在线查看本机局域网 IP（WebRTC）和公网 IP，一键复制，无需安装，浏览器本地获取。',
-    tags: ['本地IP', '公网IP', 'IP查询'],
-  },
-  {
-    href: '/timestamp',
-    icon: '⏱️',
-    title: '时间戳转换',
-    description:
-      'Unix 时间戳与日期时间互转，自动识别秒/毫秒，支持本地时区与 UTC，实时显示当前时间戳。',
-    tags: ['时间戳', '日期转换', 'Unix'],
-  },
-  {
-    href: '/md5',
-    icon: '#',
-    title: 'MD5 计算',
-    description:
-      '在线生成文本的 MD5 哈希值，支持大小写切换与多行批量计算，纯浏览器本地处理。',
-    tags: ['MD5', '哈希', '加密'],
-  },
-  {
-    href: '/jsonformatter',
-    icon: '{ }',
-    title: 'JSON 格式化',
-    description:
-      '在线 JSON 格式化、压缩与实时校验，支持语法高亮、树形视图，帮助开发者快速阅读和编辑 JSON 数据。',
-    tags: ['格式化', '校验', '语法高亮'],
-  },
-  {
-    href: '/vardump',
-    icon: '🐘',
-    title: 'var_dump 格式化',
-    description:
-      'PHP var_dump 输出美化工具，支持语法高亮、折叠展开、类型识别以及数组与对象的结构化解析。',
-    tags: ['PHP', '调试', '数组解析'],
-  },
-]
 
 export default function Home() {
   return (
     <main className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900">
-      <div className="container mx-auto px-4 py-12 md:py-20">
-        {/* 页面标题和描述 */}
-        <header className="text-center mb-12 md:mb-16">
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+      />
+      <div className="container mx-auto px-4 py-10 md:py-14">
+        <header className="text-center mb-8 md:mb-10">
           <h1 className="text-4xl md:text-5xl font-bold text-gray-900 dark:text-white mb-4">
             在线工具合集
           </h1>
-          <p className="text-lg md:text-xl text-gray-600 dark:text-gray-300 max-w-2xl mx-auto">
-            汇集图片处理与开发者常用小工具，即开即用，所有处理均在浏览器本地完成
+          <p className="text-lg md:text-xl text-gray-600 dark:text-gray-300 max-w-3xl mx-auto">
+            {SITE_DESCRIPTION}
           </p>
         </header>
 
-        {/* 工具卡片 */}
-        <section className="grid grid-cols-1 sm:grid-cols-2 gap-6 max-w-5xl mx-auto">
-          {tools.map((tool) => (
-            <Link
-              key={tool.href}
-              href={tool.href}
-              className="group bg-white dark:bg-gray-800 rounded-xl p-6 md:p-8 shadow-md hover:shadow-xl transition-all duration-200 hover:-translate-y-1 border border-transparent hover:border-blue-200 dark:hover:border-blue-800 flex flex-col"
-            >
-              <div className="flex items-center mb-4">
-                <div className="w-12 h-12 flex items-center justify-center rounded-lg bg-blue-50 dark:bg-gray-700 text-2xl font-mono font-bold text-blue-600 dark:text-blue-400 mr-4 select-none">
-                  {tool.icon}
-                </div>
-                <h2 className="text-xl md:text-2xl font-semibold text-gray-900 dark:text-white group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">
-                  {tool.title}
-                </h2>
-              </div>
-              <p className="text-gray-600 dark:text-gray-300 text-sm md:text-base leading-relaxed flex-1">
-                {tool.description}
-              </p>
-              <div className="flex flex-wrap gap-2 mt-5">
-                {tool.tags.map((tag) => (
-                  <span
-                    key={tag}
-                    className="px-2.5 py-1 text-xs rounded-full bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300"
-                  >
-                    {tag}
-                  </span>
-                ))}
-              </div>
-              <div className="mt-5 text-sm font-medium text-blue-600 dark:text-blue-400 inline-flex items-center">
-                立即使用
-                <svg
-                  className="w-4 h-4 ml-1 transition-transform group-hover:translate-x-1"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                  aria-hidden="true"
-                >
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                </svg>
-              </div>
-            </Link>
-          ))}
-        </section>
+        <HomeTools />
 
-        {/* 特点说明 */}
-        <section className="mt-16 md:mt-20 max-w-4xl mx-auto">
+        <section className="mt-14 md:mt-20 max-w-4xl mx-auto">
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             <div className="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-md text-center">
               <div className="text-3xl mb-3">⚡</div>
-              <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">
-                即开即用
-              </h3>
+              <h2 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">即开即用</h2>
               <p className="text-sm text-gray-600 dark:text-gray-300">
                 无需注册登录，打开网页即可使用，支持响应式布局
               </p>
             </div>
             <div className="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-md text-center">
               <div className="text-3xl mb-3">🔒</div>
-              <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">
-                隐私安全
-              </h3>
+              <h2 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">隐私安全</h2>
               <p className="text-sm text-gray-600 dark:text-gray-300">
                 所有数据在浏览器本地处理，文件与文本不会上传到服务器
               </p>
             </div>
             <div className="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-md text-center">
               <div className="text-3xl mb-3">🆓</div>
-              <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">
-                完全免费
-              </h3>
+              <h2 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">完全免费</h2>
               <p className="text-sm text-gray-600 dark:text-gray-300">
                 全部工具免费开放使用，持续更新更多实用功能
               </p>
@@ -153,7 +74,6 @@ export default function Home() {
         </section>
       </div>
 
-      {/* 页脚 */}
       <Footer />
     </main>
   )

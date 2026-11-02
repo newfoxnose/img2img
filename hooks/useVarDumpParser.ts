@@ -1,95 +1,140 @@
 'use client'
 
 import { useState, useEffect, useCallback, useRef } from 'react'
-import { formatVarDump, ParsedValue } from '@/lib/var-dump/varDumpParser'
+import { ParsedValue } from '@/lib/var-dump/varDumpParser'
+import { parseInput } from '@/lib/var-dump/formatConverter'
+import type { InputFormat } from '@/lib/var-dump/formatConverter'
+
+const DEFAULT_FORMAT: InputFormat = 'auto'
 
 /**
- * var_dump解析器Hook
- * 提供防抖和异步解析功能，避免页面失去响应
+ * 调试输出解析器 Hook
+ * 支持 var_dump / print_r / JSON / Laravel dump，提供防抖和异步解析能力
  */
 export function useVarDumpParser() {
   const [parsedData, setParsedData] = useState<ParsedValue[]>([])
   const [error, setError] = useState<string>('')
   const [isProcessing, setIsProcessing] = useState(false)
   const [isDebouncing, setIsDebouncing] = useState(false)
-  
-  // 使用ref来存储最新的输入，避免闭包问题
+  const [format, setFormat] = useState<InputFormat>(DEFAULT_FORMAT)
+
+  // 使用 ref 存储最新的输入与格式，避免闭包问题
   const inputRef = useRef<string>('')
-  const timeoutRef = useRef<NodeJS.Timeout | null>(null)
+  const formatRef = useRef<InputFormat>(DEFAULT_FORMAT)
+  const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const requestIdRef = useRef(0)
+
+  /**
+   * 执行解析（带请求编号，避免旧结果覆盖新结果）
+   */
+  const runParse = useCallback(async (input: string, nextFormat: InputFormat) => {
+    const requestId = ++requestIdRef.current
+
+    setIsDebouncing(false)
+    setIsProcessing(true)
+    setError('')
+
+    try {
+      const result = await parseInput(input, nextFormat)
+      if (requestId !== requestIdRef.current) return
+      setParsedData(result)
+    } catch (err) {
+      if (requestId !== requestIdRef.current) return
+      setParsedData([])
+      setError(
+        err instanceof Error
+          ? err.message
+          : '暂无法识别该格式，请粘贴 var_dump/print_r/json_encode 输出'
+      )
+    } finally {
+      if (requestId === requestIdRef.current) {
+        setIsProcessing(false)
+      }
+    }
+  }, [])
 
   /**
    * 防抖解析函数
    */
-  const debouncedParse = useCallback((input: string) => {
-    // 清除之前的定时器
-    if (timeoutRef.current) {
-      clearTimeout(timeoutRef.current)
-    }
-
-    // 如果输入为空，立即清空结果
-    if (!input.trim()) {
-      setParsedData([])
-      setError('')
-      setIsProcessing(false)
-      setIsDebouncing(false)
-      return
-    }
-
-    // 设置防抖状态
-    setIsDebouncing(true)
-    inputRef.current = input
-
-    // 设置防抖定时器
-    timeoutRef.current = setTimeout(async () => {
-      try {
-        setIsDebouncing(false)
-        setIsProcessing(true)
-        setError('')
-
-        // 异步解析
-        const result = await formatVarDump(inputRef.current)
-        setParsedData(result)
-      } catch (err) {
-        setError('解析失败：输入内容不是有效的var_dump输出格式')
-        setParsedData([])
-      } finally {
-        setIsProcessing(false)
+  const debouncedParse = useCallback(
+    (input: string, nextFormat?: InputFormat) => {
+      if (timeoutRef.current) {
+        clearTimeout(timeoutRef.current)
+        timeoutRef.current = null
       }
-    }, 300) // 300ms防抖延迟
-  }, [])
+
+      if (nextFormat && nextFormat !== formatRef.current) {
+        formatRef.current = nextFormat
+        setFormat(nextFormat)
+      }
+
+      inputRef.current = input
+
+      // 输入为空时立即清空结果
+      if (!input.trim()) {
+        requestIdRef.current++
+        setParsedData([])
+        setError('')
+        setIsProcessing(false)
+        setIsDebouncing(false)
+        return
+      }
+
+      setIsDebouncing(true)
+
+      timeoutRef.current = setTimeout(() => {
+        void runParse(inputRef.current, formatRef.current)
+      }, 300) // 300ms 防抖延迟
+    },
+    [runParse]
+  )
+
+  /**
+   * 切换输入格式，并用当前输入立即重新解析
+   */
+  const changeFormat = useCallback(
+    (nextFormat: InputFormat) => {
+      if (nextFormat === formatRef.current) return
+
+      formatRef.current = nextFormat
+      setFormat(nextFormat)
+
+      if (timeoutRef.current) {
+        clearTimeout(timeoutRef.current)
+        timeoutRef.current = null
+      }
+
+      if (!inputRef.current.trim()) return
+      void runParse(inputRef.current, nextFormat)
+    },
+    [runParse]
+  )
 
   /**
    * 立即解析函数（用于手动触发）
    */
-  const parseImmediately = useCallback(async (input: string) => {
-    // 清除防抖定时器
-    if (timeoutRef.current) {
-      clearTimeout(timeoutRef.current)
-      timeoutRef.current = null
-    }
+  const parseImmediately = useCallback(
+    async (input: string) => {
+      if (timeoutRef.current) {
+        clearTimeout(timeoutRef.current)
+        timeoutRef.current = null
+      }
 
-    if (!input.trim()) {
-      setParsedData([])
-      setError('')
-      setIsProcessing(false)
-      setIsDebouncing(false)
-      return
-    }
+      inputRef.current = input
 
-    try {
-      setIsDebouncing(false)
-      setIsProcessing(true)
-      setError('')
+      if (!input.trim()) {
+        requestIdRef.current++
+        setParsedData([])
+        setError('')
+        setIsProcessing(false)
+        setIsDebouncing(false)
+        return
+      }
 
-      const result = await formatVarDump(input)
-      setParsedData(result)
-    } catch (err) {
-      setError('解析失败：输入内容不是有效的var_dump输出格式')
-      setParsedData([])
-    } finally {
-      setIsProcessing(false)
-    }
-  }, [])
+      await runParse(input, formatRef.current)
+    },
+    [runParse]
+  )
 
   /**
    * 清空结果
@@ -99,6 +144,8 @@ export function useVarDumpParser() {
       clearTimeout(timeoutRef.current)
       timeoutRef.current = null
     }
+    requestIdRef.current++
+    inputRef.current = ''
     setParsedData([])
     setError('')
     setIsProcessing(false)
@@ -119,7 +166,9 @@ export function useVarDumpParser() {
     error,
     isProcessing,
     isDebouncing,
+    format,
     debouncedParse,
+    changeFormat,
     parseImmediately,
     clearResults
   }

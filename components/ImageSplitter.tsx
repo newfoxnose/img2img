@@ -2,6 +2,7 @@
 
 import { useState, useRef, useCallback, useEffect } from 'react'
 import JSZip from 'jszip'
+import CameraUploadButton from '@/components/shared/CameraUploadButton'
 import { splitImageToPortraits, type SplitInfo, type CropRect } from '@/utils/imageSplitter'
 import { type OutputFormat } from '@/utils/imageConverter'
 import CropEditor from './CropEditor'
@@ -373,12 +374,15 @@ export default function ImageSplitter() {
             </div>
           </div>
 
-          <button
-            onClick={() => fileInputRef.current?.click()}
-            className="mt-4 px-6 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors font-medium"
-          >
-            选择文件
-          </button>
+          <div className="mt-4 flex flex-wrap items-center justify-center gap-3">
+            <button
+              onClick={() => fileInputRef.current?.click()}
+              className="px-6 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors font-medium"
+            >
+              选择文件
+            </button>
+            <CameraUploadButton onSelect={handleFileSelect} />
+          </div>
         </div>
       </div>
 

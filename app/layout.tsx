@@ -1,20 +1,46 @@
 import type { Metadata } from 'next'
 import Script from 'next/script'
 import './globals.css'
+import ThemeToggle from '@/components/shared/ThemeToggle'
+import { SITE_DESCRIPTION, SITE_NAME, SITE_URL } from '@/lib/site'
 
 export const metadata: Metadata = {
-  title: '在线工具合集 - 图片处理、IP查询、时间戳转换、MD5计算',
-  description:
-    '免费在线工具合集，包含图片格式转换/证件照/图片分割、本机IP查询、时间戳转换、MD5计算、JSON格式化与校验、PHP var_dump输出美化等实用工具。所有处理在浏览器本地完成，安全无需上传。',
+  metadataBase: new URL(SITE_URL),
+  title: `${SITE_NAME} - 图片处理、编码、哈希、JSON、时间戳、IP 查询`,
+  description: SITE_DESCRIPTION,
   keywords:
-    '在线工具,工具合集,图片格式转换,证件照制作,图片分割,本机IP,IP查询,时间戳转换,MD5计算,JSON格式化,var_dump格式化',
+    '在线工具,工具合集,图片格式转换,图片压缩,证件照制作,图片分割,Base64编码,URL编码,哈希计算,MD5,SHA256,JSON格式化,JSONPath,时间戳转换,IP查询,二维码,正则测试,简繁转换',
+  alternates: {
+    canonical: '/',
+  },
   openGraph: {
-    title: '在线工具合集 - 图片处理与开发者实用工具',
-    description:
-      '免费在线工具合集：图片处理、IP查询、时间戳转换、MD5计算、JSON 格式化、PHP var_dump 格式化，浏览器本地处理，安全便捷。',
+    title: `${SITE_NAME} - 图片处理与开发者实用工具`,
+    description: SITE_DESCRIPTION,
+    url: SITE_URL,
+    siteName: SITE_NAME,
+    locale: 'zh_CN',
     type: 'website',
   },
+  twitter: {
+    card: 'summary_large_image',
+    title: SITE_NAME,
+    description: SITE_DESCRIPTION,
+  },
+  robots: {
+    index: true,
+    follow: true,
+  },
 }
+
+const themeScript = `
+(function() {
+  try {
+    var stored = localStorage.getItem('theme');
+    var isDark = stored === 'dark' || (!stored && window.matchMedia('(prefers-color-scheme: dark)').matches);
+    if (isDark) document.documentElement.classList.add('dark');
+  } catch (e) {}
+})();
+`
 
 export default function RootLayout({
   children,
@@ -22,9 +48,10 @@ export default function RootLayout({
   children: React.ReactNode
 }) {
   return (
-    <html lang="zh-CN">
+    <html lang="zh-CN" suppressHydrationWarning>
       <head>
         <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <script dangerouslySetInnerHTML={{ __html: themeScript }} />
         {/* Google AdSense */}
         <Script
           async
@@ -35,7 +62,8 @@ export default function RootLayout({
       </head>
       <body className="antialiased">
         {children}
-        
+        <ThemeToggle />
+
         {/* Matomo 统计代码 */}
         <Script
           id="matomo-analytics"
@@ -60,4 +88,3 @@ export default function RootLayout({
     </html>
   )
 }
-

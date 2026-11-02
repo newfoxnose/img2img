@@ -40,9 +40,9 @@ export default function VarDumpRenderer({ data, level = 0 }: VarDumpRendererProp
       case 'string':
         return (
           <div className="flex items-center" style={{ marginLeft: `${indent}px` }}>
-            <span className="syntax-type">string</span>
-            <span className="mx-2 text-php-gray">({item.length})</span>
-            <span className="syntax-string">"{item.value}"</span>
+            <span className="syntax-type dark:text-purple-400">string</span>
+            <span className="mx-2 text-php-gray dark:text-gray-400">({item.length})</span>
+            <span className="syntax-string dark:text-green-400">"{item.value}"</span>
           </div>
         )
 
@@ -50,18 +50,18 @@ export default function VarDumpRenderer({ data, level = 0 }: VarDumpRendererProp
       case 'float':
         return (
           <div className="flex items-center" style={{ marginLeft: `${indent}px` }}>
-            <span className="syntax-type">{item.type}</span>
-            <span className="mx-2 text-php-gray">({item.value})</span>
-            <span className="syntax-number">{item.value}</span>
+            <span className="syntax-type dark:text-purple-400">{item.type}</span>
+            <span className="mx-2 text-php-gray dark:text-gray-400">({item.value})</span>
+            <span className="syntax-number dark:text-blue-400">{item.value}</span>
           </div>
         )
 
       case 'bool':
         return (
           <div className="flex items-center" style={{ marginLeft: `${indent}px` }}>
-            <span className="syntax-type">bool</span>
-            <span className="mx-2 text-php-gray">({item.value ? 'true' : 'false'})</span>
-            <span className={`${item.value ? 'text-php-green' : 'text-php-red'}`}>
+            <span className="syntax-type dark:text-purple-400">bool</span>
+            <span className="mx-2 text-php-gray dark:text-gray-400">({item.value ? 'true' : 'false'})</span>
+            <span className={`${item.value ? 'text-php-green dark:text-green-400' : 'text-php-red dark:text-red-400'}`}>
               {item.value ? 'true' : 'false'}
             </span>
           </div>
@@ -70,7 +70,7 @@ export default function VarDumpRenderer({ data, level = 0 }: VarDumpRendererProp
       case 'null':
         return (
           <div className="flex items-center" style={{ marginLeft: `${indent}px` }}>
-            <span className="syntax-type">NULL</span>
+            <span className="syntax-type dark:text-purple-400">NULL</span>
           </div>
         )
 
@@ -85,15 +85,15 @@ export default function VarDumpRenderer({ data, level = 0 }: VarDumpRendererProp
               >
                 {isCollapsed ? '▶' : '▼'}
               </button>
-              <span className="syntax-type">array</span>
-              <span className="mx-2 text-php-gray">({item.length})</span>
-              <span className="syntax-keyword">{item.value}</span>
+              <span className="syntax-type dark:text-purple-400">array</span>
+              <span className="mx-2 text-php-gray dark:text-gray-400">({item.length})</span>
+              <span className="syntax-keyword dark:text-orange-400">{item.value}</span>
             </div>
             {!isCollapsed && item.children && (
               <div className="mt-1">
                 {item.children.map((child, childIndex) => (
                   <div key={childIndex} className="flex items-start">
-                    <span className="text-php-yellow mr-2" style={{ marginLeft: `${indent + 20}px` }}>
+                    <span className="text-php-yellow mr-2 dark:text-yellow-400" style={{ marginLeft: `${indent + 20}px` }}>
                       [{child.key !== undefined ? child.key : childIndex}]
                     </span>
                     <div className="flex-1">
@@ -117,15 +117,15 @@ export default function VarDumpRenderer({ data, level = 0 }: VarDumpRendererProp
               >
                 {isCollapsed ? '▶' : '▼'}
               </button>
-              <span className="syntax-type">object</span>
-              <span className="mx-2 text-php-gray">({item.className})</span>
-              <span className="syntax-keyword">{item.value}</span>
+              <span className="syntax-type dark:text-purple-400">object</span>
+              <span className="mx-2 text-php-gray dark:text-gray-400">({item.className})</span>
+              <span className="syntax-keyword dark:text-orange-400">{item.value}</span>
             </div>
             {!isCollapsed && item.properties && (
               <div className="mt-1">
                 {Object.entries(item.properties).map(([key, value], propIndex) => (
                   <div key={key} className="flex items-start">
-                    <span className="text-php-yellow mr-2" style={{ marginLeft: `${indent + 20}px` }}>
+                    <span className="text-php-yellow mr-2 dark:text-yellow-400" style={{ marginLeft: `${indent + 20}px` }}>
                       [{key}]
                     </span>
                     <div className="flex-1">
@@ -141,23 +141,23 @@ export default function VarDumpRenderer({ data, level = 0 }: VarDumpRendererProp
       case 'resource':
         return (
           <div className="flex items-center" style={{ marginLeft: `${indent}px` }}>
-            <span className="syntax-type">resource</span>
-            <span className="mx-2 text-php-gray">(resource)</span>
-            <span className="syntax-comment">{item.value}</span>
+            <span className="syntax-type dark:text-purple-400">resource</span>
+            <span className="mx-2 text-php-gray dark:text-gray-400">(resource)</span>
+            <span className="syntax-comment dark:text-gray-400">{item.value}</span>
           </div>
         )
 
       default:
         return (
           <div className="flex items-center" style={{ marginLeft: `${indent}px` }}>
-            <span className="text-php-gray">未知类型: {JSON.stringify(item)}</span>
+            <span className="text-php-gray dark:text-gray-400">未知类型: {JSON.stringify(item)}</span>
           </div>
         )
     }
   }
 
   return (
-    <div className="code-block">
+    <div className="code-block dark:bg-gray-950 dark:ring-1 dark:ring-gray-700">
       {data.map((item, index) => (
         <div key={index}>
           {renderValue(item, '', index)}

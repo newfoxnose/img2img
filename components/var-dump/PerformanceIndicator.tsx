@@ -25,16 +25,16 @@ export default function PerformanceIndicator({
   }
 
   return (
-    <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-4">
+    <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-4 dark:bg-blue-900/20 dark:border-blue-800">
       <div className="flex items-center justify-between">
         <div className="flex items-center">
-          <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-600 mr-3"></div>
-          <span className="text-blue-800 font-medium">
+          <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-600 mr-3 dark:border-blue-400"></div>
+          <span className="text-blue-800 font-medium dark:text-blue-200">
             {isDebouncing ? '等待输入完成...' : '正在解析数据...'}
           </span>
         </div>
 
-        <div className="text-sm text-blue-600">
+        <div className="text-sm text-blue-600 dark:text-blue-300">
           <span className="mr-4">输入: {inputLength} 字符</span>
           {dataLength > 0 && <span>已解析: {dataLength} 项</span>}
         </div>
@@ -42,10 +42,10 @@ export default function PerformanceIndicator({
 
       {isProcessing && (
         <div className="mt-2">
-          <div className="w-full bg-blue-200 rounded-full h-2">
-            <div className="bg-blue-600 h-2 rounded-full animate-pulse" style={{ width: '60%' }}></div>
+          <div className="w-full bg-blue-200 rounded-full h-2 dark:bg-blue-900">
+            <div className="bg-blue-600 h-2 rounded-full animate-pulse dark:bg-blue-500" style={{ width: '60%' }}></div>
           </div>
-          <p className="text-xs text-blue-600 mt-1">
+          <p className="text-xs text-blue-600 mt-1 dark:text-blue-300">
             正在处理复杂数据结构，请稍候...
           </p>
         </div>
