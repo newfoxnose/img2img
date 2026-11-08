@@ -318,19 +318,18 @@ export async function processIDPhoto(
               // 清理 URL
               URL.revokeObjectURL(replacedImg.src)
             } catch (bgError) {
-              console.warn('背景替换失败，使用默认处理:', bgError)
-              // 如果背景替换失败，使用默认方式绘制
-              targetCtx.drawImage(
-                sourceCanvas,
-                cropX,
-                cropY,
-                cropWidth,
-                cropHeight,
-                0,
-                0,
-                targetCanvas.width,
-                targetCanvas.height
+              // 输出完整错误堆栈，便于诊断抠图引擎问题
+              console.error(
+                '背景替换失败(完整堆栈): ' +
+                  (bgError instanceof Error ? bgError.stack : String(bgError))
               )
+              // 背景替换失败时显式报错，避免用户拿到未替换背景的结果却以为成功
+              reject(
+                new Error(
+                  `背景替换失败: ${bgError instanceof Error ? bgError.message : '未知错误'}`
+                )
+              )
+              return
             }
           } else {
             // 将裁剪后的图片绘制到目标 Canvas，并缩放到目标尺寸

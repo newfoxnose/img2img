@@ -1,60 +1,8 @@
 /**
  * 背景替换工具函数（基于 @imgly/background-removal）
- * 使用 CDN 方式加载，避免模块打包问题
+ * 模型与 wasm 运行时从本地 public/bg-removal/ 加载（由 scripts/copy-bg-removal-assets.js 拷贝）
+ * 无需访问外部 CDN，可离线运行
  */
-
-// 全局变量，用于缓存已加载的模块
-let backgroundRemovalModule: any = null
-let isLoading = false
-let loadPromise: Promise<any> | null = null
-
-/**
- * 从 CDN 加载 @imgly/background-removal
- * 使用动态 import() 加载 ES 模块版本
- */
-async function loadBackgroundRemoval(): Promise<any> {
-  if (backgroundRemovalModule) {
-    return backgroundRemovalModule
-  }
-
-  if (isLoading && loadPromise) {
-    return loadPromise
-  }
-
-  isLoading = true
-  loadPromise = (async () => {
-    try {
-      // 使用 jsDelivr CDN 加载 ES 模块版本
-      // jsDelivr 支持直接加载 npm 包的 ES 模块
-      // 使用 webpackIgnore 避免打包阶段尝试处理远程模块
-      // @ts-ignore - 动态 import() URL 在运行时解析
-      const module = await import(
-        /* webpackIgnore: true */ ('https://cdn.jsdelivr.net/npm/@imgly/background-removal@1.7.0/+esm' as any)
-      )
-      backgroundRemovalModule = module
-      isLoading = false
-      return module
-    } catch (jsdelivrError) {
-      try {
-        // 如果 jsDelivr 失败，尝试使用 unpkg 的 ES 模块版本
-        // @ts-ignore - 动态 import() URL 在运行时解析
-        const module = await import(
-          /* webpackIgnore: true */ ('https://unpkg.com/@imgly/background-removal@1.7.0/dist/index.esm.js' as any)
-        )
-        backgroundRemovalModule = module
-        isLoading = false
-        return module
-      } catch (unpkgError) {
-        isLoading = false
-        throw new Error(
-          `无法从 CDN 加载背景移除库。jsDelivr: ${jsdelivrError instanceof Error ? jsdelivrError.message : '未知错误'}, unpkg: ${unpkgError instanceof Error ? unpkgError.message : '未知错误'}`
-        )
-      }
-    }
-  })()
-
-  return loadPromise
-}
 
 // 背景颜色配置
 export type BackgroundColor = 'white' | 'red' | 'royal-blue' | 'sky-blue'
@@ -87,6 +35,45 @@ export const BACKGROUND_COLORS: Record<BackgroundColor, BackgroundColorConfig> =
     hex: '#87CEEB',
     rgb: [135, 206, 235],
   },
+}
+
+// 缓存 removeBackground 函数引用（库本体通过动态 import 按需加载，保持首屏 bundle 体积）
+let removeBackgroundFn:
+  | typeof import('@imgly/background-removal').removeBackground
+  | null = null
+
+async function loadRemoveBackground() {
+  if (removeBackgroundFn) {
+    return removeBackgroundFn
+  }
+  const module = await import('@imgly/background-removal')
+  removeBackgroundFn = module.removeBackground
+  return removeBackgroundFn
+}
+
+// onnxruntime-web 以全局 window.ort 提供（webpack external），需先注入本地脚本
+let ortScriptPromise: Promise<void> | null = null
+
+function ensureOrtLoaded(): Promise<void> {
+  if (typeof window === 'undefined') {
+    return Promise.reject(new Error('仅客户端可用'))
+  }
+  if ((window as { ort?: unknown }).ort) {
+    return Promise.resolve()
+  }
+  if (!ortScriptPromise) {
+    ortScriptPromise = new Promise<void>((resolve, reject) => {
+      const script = document.createElement('script')
+      script.src = '/ort/ort.min.js'
+      script.onload = () => resolve()
+      script.onerror = () => {
+        ortScriptPromise = null
+        reject(new Error('加载推理引擎失败'))
+      }
+      document.head.appendChild(script)
+    })
+  }
+  return ortScriptPromise
 }
 
 /**
@@ -124,19 +111,19 @@ export async function replaceBackground(
       throw new Error('背景替换功能仅在客户端可用')
     }
 
-    // 从 CDN 加载背景移除库
-    const bgRemovalModule = await loadBackgroundRemoval()
-    
-    // ES 模块版本直接导出 removeBackground 函数
-    const removeBackground = bgRemovalModule.removeBackground || bgRemovalModule.default?.removeBackground || bgRemovalModule.default
+    const [removeBackground] = await Promise.all([
+      loadRemoveBackground(),
+      ensureOrtLoaded(),
+    ])
 
-    if (!removeBackground || typeof removeBackground !== 'function') {
-      throw new Error('背景移除函数未正确加载')
-    }
-
-    // 使用 @imgly/background-removal 抠图，得到透明背景 PNG
+    // 使用本地托管的模型资源进行抠图，得到透明背景 PNG
+    // publicPath 必须是绝对 URL（库内部用 new URL(path, publicPath) 解析）
     const transparentBlob = await removeBackground(imageFile, {
-      format: 'image/png',
+      publicPath: `${window.location.origin}/bg-removal/`,
+      model: 'isnet_quint8',
+      output: {
+        format: 'image/png',
+      },
     })
 
     // 将抠图结果加载成图片
@@ -175,9 +162,12 @@ export async function replaceBackground(
 
     return outputBlob
   } catch (error) {
+    // 保留原始堆栈，便于诊断引擎内部问题
+    if (error instanceof Error) {
+      console.error('[bg-removal] 原始错误堆栈: ' + error.stack)
+    }
     throw new Error(
       error instanceof Error ? error.message : '背景替换失败'
     )
   }
 }
-

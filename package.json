@@ -7,9 +7,12 @@
     "build": "next build",
     "start": "next start",
     "lint": "next lint",
-    "download-models": "node scripts/download-models.js"
+    "download-models": "node scripts/download-models.js",
+    "postinstall": "node scripts/copy-bg-removal-assets.js"
   },
   "dependencies": {
+    "@imgly/background-removal": "^1.7.0",
+    "@imgly/background-removal-data": "^1.4.5",
     "@zxing/library": "^0.21.3",
     "dompurify": "^3.4.17",
     "face-api.js": "^0.22.2",
