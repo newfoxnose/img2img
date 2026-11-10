@@ -4,10 +4,11 @@ import { useState } from 'react'
 import Link from 'next/link'
 import ImageConverter from '@/components/ImageConverter'
 import IDPhotoConverter from '@/components/IDPhotoConverter'
+import IDPhotoLayout from '@/components/IDPhotoLayout'
 import ImageSplitter from '@/components/ImageSplitter'
 import Footer from '@/components/shared/Footer'
 
-type TabType = 'convert' | 'idphoto' | 'split'
+type TabType = 'convert' | 'idphoto' | 'layout' | 'split'
 
 export default function ImageToolsPage() {
   const [activeTab, setActiveTab] = useState<TabType>('convert')
@@ -62,6 +63,16 @@ export default function ImageToolsPage() {
               证件照处理
             </button>
             <button
+              onClick={() => setActiveTab('layout')}
+              className={`px-6 py-2 rounded-md transition-colors font-medium ${
+                activeTab === 'layout'
+                  ? 'bg-blue-600 text-white'
+                  : 'text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700'
+              }`}
+            >
+              证件照排版
+            </button>
+            <button
               onClick={() => setActiveTab('split')}
               className={`px-6 py-2 rounded-md transition-colors font-medium ${
                 activeTab === 'split'
@@ -79,6 +90,8 @@ export default function ImageToolsPage() {
           <ImageConverter />
         ) : activeTab === 'idphoto' ? (
           <IDPhotoConverter />
+        ) : activeTab === 'layout' ? (
+          <IDPhotoLayout />
         ) : (
           <ImageSplitter />
         )}
@@ -123,6 +136,15 @@ export default function ImageToolsPage() {
               </h3>
               <p className="text-gray-600 dark:text-gray-300">
                 支持 1寸、大2寸等标准尺寸，可裁剪头像范围，调整亮度和对比度，AI 智能抠图换背景（基于 IMG.LY 背景去除引擎）
+              </p>
+            </div>
+            <div className="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-md hover:shadow-lg transition-shadow">
+              <div className="text-3xl mb-3">📐</div>
+              <h3 className="text-xl font-semibold text-gray-900 dark:text-white mb-2">
+                证件照排版
+              </h3>
+              <p className="text-gray-600 dark:text-gray-300">
+                将 1寸 / 2寸 照片拖放到 5寸相纸（102×152mm）上，自动计算最佳方向并铺满整版，照片之间留间隙，导出 300dpi 打印图片
               </p>
             </div>
             <div className="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-md hover:shadow-lg transition-shadow">
@@ -194,6 +216,35 @@ export default function ImageToolsPage() {
                 <li>点击"批量处理"处理所有照片，或单独处理每个文件</li>
                 <li>处理完成后可以单独下载或批量打包下载</li>
                 <li>所有处理操作在浏览器本地完成，保护您的隐私</li>
+              </ol>
+            </div>
+          </section>
+        ) : activeTab === 'layout' ? (
+          <section className="mt-12 md:mt-16 max-w-4xl mx-auto">
+            <h2 className="text-2xl md:text-3xl font-semibold text-gray-900 dark:text-white mb-6 text-center">
+              证件照排版使用说明
+            </h2>
+            <div className="bg-white dark:bg-gray-800 p-6 md:p-8 rounded-lg shadow-md">
+              <ol className="list-decimal list-inside space-y-4 text-gray-700 dark:text-gray-300">
+                <li>
+                  上传一张或多张 1寸 / 2寸 证件照，在左侧列表为每张选择正确的尺寸（1寸 25×35mm / 2寸 35×53mm）
+                </li>
+                <li>
+                  选择相纸规格（默认 5寸 102×152mm）和照片间隙（0–5mm）；相纸边缘不留边距，照片贴边放置
+                </li>
+                <li>
+                  勾选"允许旋转"后，系统会自动评估每张照片是否旋转 90° 能容纳更多数量
+                </li>
+                <li>
+                  点击「🎯 自动排版」：单张照片会自动复制铺满整张相纸（1寸 ≈ 12 张 / 2寸 ≈ 4 张）；多张照片会按顺序逐行排下
+                </li>
+                <li>
+                  自动排版后，可直接在相纸预览画布上<strong>拖动照片</strong>到任意位置微调
+                </li>
+                <li>
+                  点击「下载 JPG」或「下载 PNG」导出 300dpi 原尺寸图片（5寸相纸 ≈ 1205×1795px），直接拿去打印
+                </li>
+                <li>所有排版和导出操作在浏览器本地完成，保护您的隐私</li>
               </ol>
             </div>
           </section>

@@ -9,6 +9,7 @@ export type ToolCategory =
   | '开发调试'
   | '文本处理'
   | '时间日期'
+  | '计算工具'
   | '网络工具'
 
 export interface ToolMeta {
@@ -28,6 +29,7 @@ export const TOOL_CATEGORIES: ToolCategory[] = [
   '开发调试',
   '文本处理',
   '时间日期',
+  '计算工具',
   '网络工具',
 ]
 
@@ -212,6 +214,25 @@ export const tools: ToolMeta[] = [
     tags: ['日期差', '日期加减', '星期'],
     category: '时间日期',
     keywords: ['日期计算', '日期差', '天数计算', '日期加减'],
+    isNew: true,
+  },
+  {
+    href: '/calculator',
+    icon: '🧮',
+    title: '计算器',
+    description:
+      '基础四则运算与科学计算，支持括号、百分号、幂运算与三角函数、对数，可键盘输入并保存历史记录。',
+    tags: ['计算器', '科学计算', '历史记录'],
+    category: '计算工具',
+    keywords: [
+      '计算器',
+      'calculator',
+      '科学计算器',
+      '四则运算',
+      '三角函数',
+      '对数',
+      '百分号',
+    ],
     isNew: true,
   },
   {
