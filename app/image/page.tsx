@@ -6,9 +6,10 @@ import ImageConverter from '@/components/ImageConverter'
 import IDPhotoConverter from '@/components/IDPhotoConverter'
 import IDPhotoLayout from '@/components/IDPhotoLayout'
 import ImageSplitter from '@/components/ImageSplitter'
+import ImageCutSplitter from '@/components/ImageCutSplitter'
 import Footer from '@/components/shared/Footer'
 
-type TabType = 'convert' | 'idphoto' | 'layout' | 'split'
+type TabType = 'convert' | 'idphoto' | 'layout' | 'split' | 'cut'
 
 export default function ImageToolsPage() {
   const [activeTab, setActiveTab] = useState<TabType>('convert')
@@ -35,7 +36,7 @@ export default function ImageToolsPage() {
             图片处理工具
           </h1>
           <p className="text-lg md:text-xl text-gray-600 dark:text-gray-300 max-w-2xl mx-auto">
-            支持图片格式转换、质量与尺寸压缩、水印添加、证件照处理和图片分割，单个文件处理或批量处理，转换后自动打包下载
+            支持图片格式转换、质量与尺寸压缩、水印添加、证件照处理、竖版分割和拼接图手动划线切割，单个文件处理或批量处理，转换后自动打包下载
           </p>
         </header>
 
@@ -80,7 +81,17 @@ export default function ImageToolsPage() {
                   : 'text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700'
               }`}
             >
-              图片分割
+              竖版分割
+            </button>
+            <button
+              onClick={() => setActiveTab('cut')}
+              className={`px-6 py-2 rounded-md transition-colors font-medium ${
+                activeTab === 'cut'
+                  ? 'bg-blue-600 text-white'
+                  : 'text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700'
+              }`}
+            >
+              划线切割
             </button>
           </div>
         </div>
@@ -92,8 +103,10 @@ export default function ImageToolsPage() {
           <IDPhotoConverter />
         ) : activeTab === 'layout' ? (
           <IDPhotoLayout />
-        ) : (
+        ) : activeTab === 'split' ? (
           <ImageSplitter />
+        ) : (
+          <ImageCutSplitter />
         )}
 
         {/* 功能说明区域 */}
@@ -145,6 +158,15 @@ export default function ImageToolsPage() {
               </h3>
               <p className="text-gray-600 dark:text-gray-300">
                 将 1寸 / 2寸 照片拖放到 5寸相纸（102×152mm）上，自动计算最佳方向并铺满整版，照片之间留间隙，导出 300dpi 打印图片
+              </p>
+            </div>
+            <div className="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-md hover:shadow-lg transition-shadow">
+              <div className="text-3xl mb-3">✂️</div>
+              <h3 className="text-xl font-semibold text-gray-900 dark:text-white mb-2">
+                划线切割
+              </h3>
+              <p className="text-gray-600 dark:text-gray-300">
+                在拼接图上手动划线标记切割位置，工具沿划线自动吸附白边缝隙或两张图片的直接交界，并将两端自动延长到最近的图片边缘或其他切割线，支持 T 型（丁字路口）分割
               </p>
             </div>
             <div className="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-md hover:shadow-lg transition-shadow">
@@ -248,10 +270,10 @@ export default function ImageToolsPage() {
               </ol>
             </div>
           </section>
-        ) : (
+        ) : activeTab === 'split' ? (
           <section className="mt-12 md:mt-16 max-w-4xl mx-auto">
             <h2 className="text-2xl md:text-3xl font-semibold text-gray-900 dark:text-white mb-6 text-center">
-              图片分割使用说明
+              竖版分割使用说明
             </h2>
             <div className="bg-white dark:bg-gray-800 p-6 md:p-8 rounded-lg shadow-md">
               <ol className="list-decimal list-inside space-y-4 text-gray-700 dark:text-gray-300">
@@ -271,6 +293,31 @@ export default function ImageToolsPage() {
                 </li>
                 <li>可点击单张下载或"全部下载"保存某张原图的所有结果</li>
                 <li>也可点击"打包下载"将所有分割结果打包为 ZIP 文件一次性下载</li>
+                <li>所有处理操作在浏览器本地完成，保护您的隐私</li>
+              </ol>
+            </div>
+          </section>
+        ) : (
+          <section className="mt-12 md:mt-16 max-w-4xl mx-auto">
+            <h2 className="text-2xl md:text-3xl font-semibold text-gray-900 dark:text-white mb-6 text-center">
+              划线切割使用说明
+            </h2>
+            <div className="bg-white dark:bg-gray-800 p-6 md:p-8 rounded-lg shadow-md">
+              <ol className="list-decimal list-inside space-y-4 text-gray-700 dark:text-gray-300">
+                <li>点击上传区域或拖拽一张拼接图片到指定区域</li>
+                <li>
+                  在图片上<strong>按住鼠标拖动划线</strong>：竖着划表示左右切割，横着划表示上下切割；不需要精确画到边界，线大致覆盖要切割的区域即可
+                </li>
+                <li>
+                  松手后，工具会沿划线在<strong>吸附范围</strong>内查找真实边线：若存在白色/纯色分隔缝，则吸附到缝隙中心；若两张图片直接相接，则吸附到相邻像素差异最大的交界处
+                </li>
+                <li>
+                  吸附后的精确切割线以<strong>蓝色实线</strong>显示，两端会自动延长到最近的图片边缘或另一条切割线；因此画半条线即可形成 <strong>T 型（丁字路口）</strong>分割，例如左侧上下两张、右侧一张共 3 张图
+                </li>
+                <li>
+                  如吸附位置不准确，可调整<strong>吸附范围</strong>（搜索半径）和<strong>白边容差</strong>（纯色缝隙的颜色宽容度），再删除并重新划线
+                </li>
+                <li>点击"执行切割"生成图片，可单张下载，或点击"打包下载全部"打包为 ZIP 文件</li>
                 <li>所有处理操作在浏览器本地完成，保护您的隐私</li>
               </ol>
             </div>
