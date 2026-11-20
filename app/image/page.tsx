@@ -157,7 +157,7 @@ export default function ImageToolsPage() {
                 证件照排版
               </h3>
               <p className="text-gray-600 dark:text-gray-300">
-                将 1寸 / 2寸 照片拖放到 5寸相纸（102×152mm）上，自动计算最佳方向并铺满整版，照片之间留间隙，导出 300dpi 打印图片
+                将 1寸 / 2寸 照片拖放到相纸上，自动计算最佳方向并铺满整版，照片之间留间隙，导出 300dpi 打印图片
               </p>
             </div>
             <div className="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-md hover:shadow-lg transition-shadow">

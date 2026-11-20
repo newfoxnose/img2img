@@ -22,8 +22,7 @@ export function pxToMm(px: number): number {
 
 /** 预设纸张尺寸（mm） */
 export const PAPER_SIZES = {
-  '5inch': { name: '5寸相纸', widthMm: 102, heightMm: 152 },
-  '6inch': { name: '6寸相纸', widthMm: 152, heightMm: 102 },
+  '6inch': { name: '6寸相纸（4R）', widthMm: 102, heightMm: 152 },
 } as const
 
 export type PaperSize = keyof typeof PAPER_SIZES

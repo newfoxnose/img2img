@@ -51,7 +51,7 @@ async function loadNaturalSize(url: string): Promise<{ w: number; h: number }> {
 export default function IDPhotoLayout() {
   const [photos, setPhotos] = useState<UploadedPhoto[]>([])
   const [gapMm, setGapMm] = useState(2)
-  const [paperSize, setPaperSize] = useState<PaperSize>('5inch')
+  const [paperSize, setPaperSize] = useState<PaperSize>('6inch')
   const [placed, setPlaced] = useState<PlacedPhoto[]>([])
 
   const canvasRef = useRef<HTMLCanvasElement>(null)
